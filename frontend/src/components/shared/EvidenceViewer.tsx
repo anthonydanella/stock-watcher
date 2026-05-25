@@ -167,9 +167,7 @@ export function EvidenceViewer({
           <pre
             className={cn(
               "font-mono text-sm leading-6 text-foreground",
-              wrapped
-                ? "whitespace-pre-wrap wrap-break-word"
-                : "whitespace-pre"
+              wrapped ? "whitespace-pre-wrap wrap-break-word" : "whitespace-pre"
             )}
           >
             <HighlightedText value={value} query={query} mode={mode} />
