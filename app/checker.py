@@ -94,7 +94,7 @@ COOKIE_CONSENT_CLEANUP_SCRIPT = """
 
   candidates.forEach((element) => {
     if (isPageShell(element)) return;
-    element.setAttribute("data-stock-checker-hidden", "cookie-consent");
+    element.setAttribute("data-stock-watcher-hidden", "cookie-consent");
     element.style.setProperty("display", "none", "important");
   });
 
