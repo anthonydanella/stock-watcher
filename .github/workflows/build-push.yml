@@ -1,0 +1,57 @@
+name: Build, push to local registry, and deploy
+
+# Self-hosted deploy pipeline. Private infrastructure details are supplied via
+# repository secrets so nothing internal is exposed in this public file.
+# Required secrets:
+#   TS_OAUTH_CLIENT_ID / TS_OAUTH_SECRET  Tailscale OAuth client for CI access.
+#   DEPLOY_REGISTRY                       Registry host:port, e.g. host:5000.
+#   WATCHTOWER_URL                        Base URL of the Watchtower HTTP API.
+#   WATCHTOWER_TOKEN                      Bearer token for the Watchtower API.
+# Forks without these secrets can safely ignore this workflow; CI lives in ci.yml.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: # skip pushes that only touch these
+      - "**.md"
+      - "docs/**"
+      - ".github/**"
+
+jobs:
+  build:
+    # also let commit messages opt out: "feat: tweak copy [skip deploy]"
+    if: ${{ github.repository == 'anthonydanella/stock-watcher' && !contains(github.event.head_commit.message, '[skip deploy]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Set up Buildx (allow insecure HTTP registry)
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+          buildkitd-config-inline: |
+            [registry."${{ secrets.DEPLOY_REGISTRY }}"]
+              http = true
+              insecure = true
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DEPLOY_REGISTRY }}/stock-watcher:latest
+            ${{ secrets.DEPLOY_REGISTRY }}/stock-watcher:${{ github.sha }}
+
+      - name: Trigger Watchtower update
+        run: |
+          curl -fsSL -X POST --retry 3 --retry-delay 5 \
+            -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN }}" \
+            "${{ secrets.WATCHTOWER_URL }}/v1/update?images=${{ secrets.DEPLOY_REGISTRY }}/stock-watcher"
