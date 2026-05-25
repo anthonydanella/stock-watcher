@@ -146,7 +146,7 @@ export function EvidenceViewer({
               <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
                 {field.label}
               </p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-5 [overflow-wrap:anywhere]">
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-5 wrap-break-word">
                 <HighlightedText value={field.value} query={query} mode={mode} />
               </p>
             </div>
@@ -157,7 +157,7 @@ export function EvidenceViewer({
       <div
         className={cn(
           "overflow-auto rounded-md border bg-background p-4",
-          bodyClassName ?? "max-h-[32rem]"
+          bodyClassName ?? "max-h-128"
         )}
       >
         <p className="mb-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -168,7 +168,7 @@ export function EvidenceViewer({
             className={cn(
               "font-mono text-sm leading-6 text-foreground",
               wrapped
-                ? "whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                ? "whitespace-pre-wrap wrap-break-word"
                 : "whitespace-pre"
             )}
           >
