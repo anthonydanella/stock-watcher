@@ -1,0 +1,1 @@
+"""Stock checker application package."""

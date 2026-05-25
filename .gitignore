@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+data/
+node_modules/
+frontend/dist/
+
+*.DS_Store
+
+# Agent / editor tooling (not part of the app)
+.agents/
+frontend/.agents/
+skills-lock.json
+
+.env
+.env.local
+!.env.example
+.vscode/tasks.json
+.vscode/launch.json
+CLAUDE.local.md

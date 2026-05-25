@@ -1,0 +1,13 @@
+# Normalize line endings to LF on checkout/commit.
+* text=auto eol=lf
+
+# Binary assets.
+*.png binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# Generated lockfiles: collapse in diffs and exclude from language stats.
+uv.lock linguist-generated=true
+package-lock.json linguist-generated=true
+frontend/package-lock.json linguist-generated=true
