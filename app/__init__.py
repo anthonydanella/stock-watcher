@@ -1,1 +1,1 @@
-"""Stock checker application package."""
+"""Stock watcher application package."""

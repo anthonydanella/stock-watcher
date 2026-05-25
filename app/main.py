@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
     await scheduler.stop()
 
 
-app = FastAPI(title="Stock Checker", lifespan=lifespan)
+app = FastAPI(title="Stock Watcher", lifespan=lifespan)
 if (FRONTEND_DIST / "assets").exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
@@ -306,8 +306,8 @@ async def api_test_notification() -> dict[str, bool]:
             status_code=status.HTTP_400_BAD_REQUEST, detail="ntfy topic is required"
         )
 
-    title = "Stock Checker test"
-    message = "Stock Checker test notification sent successfully."
+    title = "Stock Watcher test"
+    message = "Stock Watcher test notification sent successfully."
     try:
         sent = await checker.ntfy.send(app_settings, None, title, message, tags="bell")
     except Exception as exc:  # noqa: BLE001 - surface notification failures without crashing the app

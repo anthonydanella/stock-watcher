@@ -1,4 +1,4 @@
-# Stock Checker
+# Stock Watcher
 
 Self-hosted stock monitor. It polls product URLs on a schedule, evaluates
 your match rules to decide whether an item is in stock, detects anti-bot
@@ -63,7 +63,7 @@ Copy `.env.example` to `.env` and override what you need.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `DATA_DIR` | `./data` | Directory for SQLite and runtime state. |
-| `DATABASE_PATH` | `<DATA_DIR>/stock_checker.sqlite3` | SQLite file path. |
+| `DATABASE_PATH` | `<DATA_DIR>/stock_watcher.sqlite3` | SQLite file path. |
 | `TZ` | `UTC` | Timezone for scheduling and timestamps. |
 | `CHECK_LOOP_INTERVAL_SECONDS` | `15` (min `1`) | Scheduler tick interval. |
 | `EVENT_RETENTION_LIMIT` | `1000` (min `100`) | Max stored events. |

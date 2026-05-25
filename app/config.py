@@ -43,7 +43,7 @@ class Settings:
 def load_settings() -> Settings:
     data_dir = Path(os.getenv("DATA_DIR", "./data")).expanduser()
     database_path = Path(
-        os.getenv("DATABASE_PATH", data_dir / "stock_checker.sqlite3")
+        os.getenv("DATABASE_PATH", data_dir / "stock_watcher.sqlite3")
     ).expanduser()
     return Settings(
         data_dir=data_dir,

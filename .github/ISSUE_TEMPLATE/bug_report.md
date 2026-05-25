@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a problem with Stock Checker
+about: Report a problem with Stock Watcher
 title: ""
 labels: bug
 assignees: ""

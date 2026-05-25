@@ -19,7 +19,7 @@ export function Shell() {
               to="/"
               className="truncate rounded-sm text-base font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              Stock Checker
+              Stock Watcher
             </Link>
             <span className="shrink-0 rounded-full border bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground">
               v{packageInfo.version}

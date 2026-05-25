@@ -139,7 +139,7 @@ def test_settings_test_notification_sends_message(monkeypatch, tmp_path) -> None
     assert response.status_code == 200
     assert response.json() == {"sent": True}
     assert fake_ntfy.messages == [
-        ("Stock Checker test", "Stock Checker test notification sent successfully.", "bell")
+        ("Stock Watcher test", "Stock Watcher test notification sent successfully.", "bell")
     ]
     assert any(
         "ntfy test notification sent" in event["message"]
