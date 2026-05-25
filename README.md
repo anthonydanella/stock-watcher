@@ -10,7 +10,7 @@ single Docker image. Designed for power users.
 ## Features
 
 - **Scheduled polling** of any product URL with configurable intervals and jitter.
-- **Flexible match rules** — CSS/text/JSON extractors with substring, regex, or
+- **Flexible match rules** — CSS/text extractors with substring, regex, or
   quantity-threshold matching (`app/rules.py`).
 - **Quantity mode** — extract a numeric stock count from the page and alert on a threshold.
 - **Challenge detection** — recognizes anti-bot interstitials, cools down the
