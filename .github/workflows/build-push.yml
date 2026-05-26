@@ -10,20 +10,25 @@ name: Build, push to local registry, and deploy
 # Forks without these secrets can safely ignore this workflow; CI lives in ci.yml.
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
-    paths-ignore: # skip pushes that only touch these
-      - "**.md"
-      - "docs/**"
-      - ".github/**"
 
 jobs:
   build:
-    # also let commit messages opt out: "feat: tweak copy [skip deploy]"
-    if: ${{ github.repository == 'anthonydanella/stock-watcher' && !contains(github.event.head_commit.message, '[skip deploy]') }}
+    # Run only if CI succeeded. Commit messages can opt out: "feat: tweak copy [skip deploy]".
+    # `paths-ignore` is not supported by `workflow_run`, so doc-only pushes that pass CI
+    # will still trigger a rebuild (image content is unchanged).
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+          && github.repository == 'anthonydanella/stock-watcher'
+          && !contains(github.event.workflow_run.head_commit.message, '[skip deploy]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
@@ -48,7 +53,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DEPLOY_REGISTRY }}/stock-watcher:latest
-            ${{ secrets.DEPLOY_REGISTRY }}/stock-watcher:${{ github.sha }}
+            ${{ secrets.DEPLOY_REGISTRY }}/stock-watcher:${{ github.event.workflow_run.head_sha }}
 
       - name: Trigger Watchtower update
         run: |
