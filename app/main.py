@@ -362,7 +362,7 @@ async def api_llm_suggest_rule(payload: RuleSuggestPayload) -> dict[str, Any]:
         )
     except LLMError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
     return {
         "stock_mode": suggestion.stock_mode,
@@ -454,12 +454,12 @@ async def _fetch_for_llm(url: str, *, user_agent_mode: str = "random", timeout_s
         fetched = await checker.fetch(transient)
     except Exception as exc:  # noqa: BLE001 - bubble fetch failures as 4xx
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Could not fetch the page for AI inspection: {exc}",
         ) from exc
     if fetched.status_code is None or fetched.status_code >= 400:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Could not fetch the page for AI inspection (HTTP {fetched.status_code}).",
         )
     return fetched
