@@ -56,21 +56,11 @@ stock — all through a clean interface built for power users.
 
 ## Quick start
 
-```bash
-cp .env.example .env       # optional: set NTFY_TOPIC, LLM_API_KEY, etc.
-docker compose up -d --build
-```
-
-Then open <http://localhost:8000>. State persists to the volume configured
-in [docker-compose.yml](docker-compose.yml) (`/data` inside the container).
-
-## Local development
-
-**Backend** (Python 3.11+, [uv](https://docs.astral.sh/uv/)):
+**Backend** (Python 3.13+, [uv](https://docs.astral.sh/uv/)):
 
 ```bash
 uv sync --dev
-uv run uvicorn app.main:app --reload     # http://127.0.0.1:8000
+uv run uvicorn app.main:app --reload
 ```
 
 **Frontend** (Node 24):
@@ -78,7 +68,7 @@ uv run uvicorn app.main:app --reload     # http://127.0.0.1:8000
 ```bash
 cd frontend
 npm install
-npm run dev                              # Vite dev server, proxies /api to FastAPI
+npm run dev
 ```
 
 When running the backend directly, a `.env` file at the repo root is loaded
