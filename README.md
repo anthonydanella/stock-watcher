@@ -73,7 +73,7 @@ uv sync --dev
 uv run uvicorn app.main:app --reload     # http://127.0.0.1:8000
 ```
 
-**Frontend** (Node 22+):
+**Frontend** (Node 24):
 
 ```bash
 cd frontend
