@@ -26,6 +26,9 @@ export function Shell() {
             </span>
           </div>
           <nav className="order-3 -mx-1 flex basis-full items-center gap-1 overflow-x-auto px-1 text-sm text-muted-foreground lg:order-none lg:mx-0 lg:basis-auto lg:flex-1 lg:gap-3 lg:overflow-visible lg:px-0">
+            <NavLink to="/" end className={navLinkClass}>
+              Dashboard
+            </NavLink>
             <NavLink to="/monitors" className={navLinkClass}>
               Monitors
             </NavLink>
