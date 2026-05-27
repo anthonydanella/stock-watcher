@@ -25,7 +25,7 @@ export function MonitorEditorForm({
 }: {
   monitor: Partial<Monitor>;
   isNew: boolean;
-  busyAction: "save" | "run" | "delete" | null;
+  busyAction: "save" | "run" | "delete" | "duplicate" | null;
   formRef: React.RefObject<HTMLFormElement | null>;
   onSubmit: (event: React.FormEvent) => void;
   onPatch: MonitorPatch;

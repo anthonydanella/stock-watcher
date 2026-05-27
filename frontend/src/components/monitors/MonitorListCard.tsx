@@ -53,7 +53,8 @@ function getStatusTheme(status: string | null | undefined, enabled: boolean) {
 export function MonitorListCard({
   monitor,
   busyActions,
-  onAction
+  onAction,
+  onDuplicate
 }: {
   monitor: Monitor;
   busyActions: Record<number, MonitorActionKind>;
@@ -62,6 +63,7 @@ export function MonitorListCard({
     kind: MonitorActionKind,
     fn: () => Promise<Monitor>
   ) => Promise<void>;
+  onDuplicate?: (monitor: Monitor) => Promise<void> | void;
 }) {
   const theme = getStatusTheme(monitor.status, monitor.enabled);
   const isQuantity = monitor.stock_mode === "quantity";
@@ -132,7 +134,12 @@ export function MonitorListCard({
             {monitor.last_error}
           </Alert>
         ) : null}
-        <MonitorActions monitor={monitor} busyActions={busyActions} onAction={onAction} />
+        <MonitorActions
+          monitor={monitor}
+          busyActions={busyActions}
+          onAction={onAction}
+          onDuplicate={onDuplicate}
+        />
       </CardContent>
     </Card>
   );

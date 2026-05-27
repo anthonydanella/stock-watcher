@@ -1,4 +1,4 @@
-import { Bell, BellOff, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Bell, BellOff, Copy, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -103,6 +103,26 @@ export function AlertRules() {
       await refresh();
     } catch (exc) {
       toast.error(errorMessage(exc, "Could not update alert rule"));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function duplicate(rule: NotificationRule) {
+    setBusyId(rule.id);
+    try {
+      await api.createNotificationRule({
+        name: `${rule.name} (copy)`,
+        enabled: rule.enabled,
+        monitor_ids: [...rule.monitor_ids],
+        trigger_statuses: [...rule.trigger_statuses],
+        threshold: rule.threshold,
+        cooldown_minutes: rule.cooldown_minutes
+      });
+      toast.success(`Duplicated "${rule.name}"`);
+      await refresh();
+    } catch (exc) {
+      toast.error(errorMessage(exc, "Could not duplicate alert rule"));
     } finally {
       setBusyId(null);
     }
@@ -253,6 +273,7 @@ export function AlertRules() {
                   busy={busyId === rule.id}
                   onEdit={() => openEdit(rule)}
                   onToggle={() => void toggleEnabled(rule)}
+                  onDuplicate={() => void duplicate(rule)}
                   onDelete={() => void remove(rule)}
                 />
               ))}
@@ -298,6 +319,7 @@ function RuleCard({
   busy,
   onEdit,
   onToggle,
+  onDuplicate,
   onDelete
 }: {
   rule: NotificationRule;
@@ -306,6 +328,7 @@ function RuleCard({
   busy: boolean;
   onEdit: () => void;
   onToggle: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const scopeSize = rule.monitor_ids.length === 0 ? totalMonitors : rule.monitor_ids.length;
@@ -418,6 +441,16 @@ function RuleCard({
           <Button variant="secondary" size="sm" disabled={busy} onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />
             Edit
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={onDuplicate}
+            aria-label={`Duplicate ${rule.name}`}
+            title="Duplicate"
+          >
+            <Copy className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"

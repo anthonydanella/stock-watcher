@@ -29,6 +29,7 @@ import {
   statusLabel,
   timeAgo
 } from "../lib/format";
+import { monitorCopyPayload } from "../lib/monitor";
 import { cn } from "../lib/utils";
 import type { Monitor } from "../types";
 
@@ -117,6 +118,23 @@ export function Monitors() {
       setBusyActions((current) => {
         const next = { ...current };
         delete next[monitorId];
+        return next;
+      });
+    }
+  }
+
+  async function duplicate(monitor: Monitor) {
+    setBusyActions((current) => ({ ...current, [monitor.id]: "duplicate" }));
+    try {
+      const created = await api.createMonitor(monitorCopyPayload(monitor));
+      setMonitors((current) => [...current, created]);
+      toast.success(`Duplicated as "${created.name}"`);
+    } catch (exc) {
+      toast.error(errorMessage(exc, "Could not duplicate monitor"));
+    } finally {
+      setBusyActions((current) => {
+        const next = { ...current };
+        delete next[monitor.id];
         return next;
       });
     }
@@ -252,6 +270,7 @@ export function Monitors() {
                 monitor={monitor}
                 busyActions={busyActions}
                 onAction={action}
+                onDuplicate={duplicate}
               />
             ))}
             {!sorted.length ? (
@@ -320,6 +339,7 @@ export function Monitors() {
                       monitor={monitor}
                       busyActions={busyActions}
                       onAction={action}
+                      onDuplicate={duplicate}
                     />
                   ))}
                   {!sorted.length ? (
@@ -491,7 +511,8 @@ function SortableHead({
 function MonitorRow({
   monitor,
   busyActions,
-  onAction
+  onAction,
+  onDuplicate
 }: {
   monitor: Monitor;
   busyActions: Record<number, MonitorActionKind>;
@@ -500,6 +521,7 @@ function MonitorRow({
     kind: MonitorActionKind,
     fn: () => Promise<Monitor>
   ) => Promise<void>;
+  onDuplicate: (monitor: Monitor) => Promise<void>;
 }) {
   const cooling = isCoolingDown(monitor);
   const isQuantity = monitor.stock_mode === "quantity";
@@ -572,7 +594,13 @@ function MonitorRow({
       </TableCell>
       <TableCell className="w-40 text-right">
         <div className="flex justify-end">
-          <MonitorActions monitor={monitor} busyActions={busyActions} onAction={onAction} compact />
+          <MonitorActions
+            monitor={monitor}
+            busyActions={busyActions}
+            onAction={onAction}
+            onDuplicate={onDuplicate}
+            compact
+          />
         </div>
       </TableCell>
     </tr>

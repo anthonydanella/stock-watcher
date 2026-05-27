@@ -1,4 +1,4 @@
-import { ArrowLeft, LoaderCircle, Play } from "lucide-react";
+import { ArrowLeft, Copy, LoaderCircle, Play } from "lucide-react";
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ import { Alert } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { errorMessage, formatSeconds } from "../lib/format";
-import { blankMonitor, isFullMonitor } from "../lib/monitor";
+import { blankMonitor, isFullMonitor, monitorCopyPayload } from "../lib/monitor";
 import { cn } from "../lib/utils";
 import type { CheckAttempt, Monitor } from "../types";
 
@@ -37,7 +37,9 @@ export function MonitorEditor() {
   const [initialSnapshot, setInitialSnapshot] = React.useState(serializeMonitor(blankMonitor));
   const [loading, setLoading] = React.useState(!isNew);
   const [loadError, setLoadError] = React.useState("");
-  const [busyAction, setBusyAction] = React.useState<"save" | "run" | "delete" | null>(null);
+  const [busyAction, setBusyAction] = React.useState<
+    "save" | "run" | "delete" | "duplicate" | null
+  >(null);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"overview" | "settings">("overview");
 
@@ -176,6 +178,21 @@ export function MonitorEditor() {
     }
   }
 
+  async function duplicate() {
+    if (!fullMonitor) return;
+    if (busyAction) return;
+    setBusyAction("duplicate");
+    try {
+      const created = await api.createMonitor(monitorCopyPayload(fullMonitor));
+      toast.success(`Duplicated as "${created.name}"`);
+      navigate(`/monitors/${created.id}`);
+    } catch (exc) {
+      toast.error(errorMessage(exc, "Could not duplicate monitor"));
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function remove() {
     if (!id) return;
     if (busyAction) return;
@@ -243,16 +260,30 @@ export function MonitorEditor() {
             </p>
           </div>
 
-          {!isNew && activeTab === "overview" && fullMonitor ? (
-            <div className="shrink-0">
-              <Button variant="default" disabled={busyAction === "run"} onClick={runNow}>
-                {busyAction === "run" ? (
+          {!isNew && fullMonitor ? (
+            <div className="flex shrink-0 gap-2">
+              <Button
+                variant="outline"
+                disabled={busyAction === "duplicate" || Boolean(busyAction)}
+                onClick={duplicate}
+              >
+                {busyAction === "duplicate" ? (
                   <LoaderCircle className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Play className="h-4 w-4" />
+                  <Copy className="h-4 w-4" />
                 )}
-                {busyAction === "run" ? "Checking..." : "Run check now"}
+                {busyAction === "duplicate" ? "Duplicating..." : "Duplicate"}
               </Button>
+              {activeTab === "overview" ? (
+                <Button variant="default" disabled={busyAction === "run"} onClick={runNow}>
+                  {busyAction === "run" ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  {busyAction === "run" ? "Checking..." : "Run check now"}
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </div>

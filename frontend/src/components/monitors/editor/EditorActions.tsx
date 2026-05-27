@@ -7,7 +7,7 @@ export function EditorActions({
   busyAction
 }: {
   isNew: boolean;
-  busyAction: "save" | "run" | "delete" | null;
+  busyAction: "save" | "run" | "delete" | "duplicate" | null;
 }) {
   const busy = Boolean(busyAction);
   return (
@@ -34,7 +34,7 @@ export function DangerZone({
   confirmDelete,
   onRemove
 }: {
-  busyAction: "save" | "run" | "delete" | null;
+  busyAction: "save" | "run" | "delete" | "duplicate" | null;
   confirmDelete: boolean;
   onRemove: () => void;
 }) {
