@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import React from "react";
 import { statusBadgeClass, statusLabel } from "../../lib/format";
 import { cn } from "../../lib/utils";
@@ -11,6 +12,7 @@ import {
 import { FormField, NumberField, ToggleField } from "../shared/FormFields";
 import { InfoTooltip } from "../shared/InfoTooltip";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -54,10 +56,21 @@ export function AlertRuleEditor({
         }
       : DEFAULT_INPUT
   );
+  const [scopeMode, setScopeModeState] = React.useState<"all" | "specific">(() =>
+    initial && initial.monitor_ids.length > 0 ? "specific" : "all"
+  );
+  const [monitorQuery, setMonitorQuery] = React.useState("");
 
-  const scopeMode: "all" | "specific" = draft.monitor_ids.length === 0 ? "all" : "specific";
   const monitorCountForThreshold = scopeMode === "all" ? monitors.length : draft.monitor_ids.length;
   const thresholdMax = Math.max(1, monitorCountForThreshold);
+
+  const filteredMonitors = React.useMemo(() => {
+    const q = monitorQuery.trim().toLowerCase();
+    if (!q) return monitors;
+    return monitors.filter(
+      (monitor) => monitor.name.toLowerCase().includes(q) || monitor.url.toLowerCase().includes(q)
+    );
+  }, [monitors, monitorQuery]);
 
   function patch(next: Partial<NotificationRuleInput>) {
     setDraft((current) => ({ ...current, ...next }));
@@ -72,10 +85,9 @@ export function AlertRuleEditor({
   }
 
   function setScopeMode(mode: "all" | "specific") {
+    setScopeModeState(mode);
     if (mode === "all") {
       patch({ monitor_ids: [] });
-    } else if (draft.monitor_ids.length === 0 && monitors.length > 0) {
-      patch({ monitor_ids: [monitors[0].id] });
     }
   }
 
@@ -86,9 +98,22 @@ export function AlertRuleEditor({
     patch({ monitor_ids: [...current] });
   }
 
+  function selectAllVisible() {
+    const ids = new Set(draft.monitor_ids);
+    for (const monitor of filteredMonitors) ids.add(monitor.id);
+    patch({ monitor_ids: [...ids] });
+  }
+
+  function clearVisible() {
+    if (!filteredMonitors.length) return;
+    const visibleIds = new Set(filteredMonitors.map((monitor) => monitor.id));
+    patch({ monitor_ids: draft.monitor_ids.filter((id) => !visibleIds.has(id)) });
+  }
+
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!draft.name.trim()) return;
+    if (scopeMode === "specific" && draft.monitor_ids.length === 0) return;
     onSubmit({
       ...draft,
       name: draft.name.trim(),
@@ -184,31 +209,90 @@ export function AlertRuleEditor({
               No monitors yet. Create one first, then come back to scope this rule.
             </p>
           ) : (
-            <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border bg-card p-2">
-              {monitors.map((monitor) => {
-                const checked = draft.monitor_ids.includes(monitor.id);
-                const inputId = `alert-monitor-${monitor.id}`;
-                return (
-                  <label
-                    key={monitor.id}
-                    htmlFor={inputId}
-                    className="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent/40"
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-0 grow sm:max-w-xs">
+                  <Search
+                    className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    value={monitorQuery}
+                    onChange={(event) => setMonitorQuery(event.target.value)}
+                    placeholder="Filter monitors"
+                    aria-label="Filter monitors"
+                    className="h-8 pl-7 text-sm"
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {draft.monitor_ids.length} selected
+                  {monitorQuery && filteredMonitors.length !== monitors.length
+                    ? ` · ${filteredMonitors.length} of ${monitors.length} shown`
+                    : ""}
+                </span>
+                <div className="ml-auto flex gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={selectAllVisible}
+                    disabled={filteredMonitors.length === 0}
                   >
-                    <Checkbox
-                      id={inputId}
-                      checked={checked}
-                      onCheckedChange={(value) => toggleMonitor(monitor.id, Boolean(value))}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{monitor.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">{monitor.url}</div>
-                    </div>
-                    <Badge className={cn("shrink-0", statusBadgeClass(monitor.status))}>
-                      {statusLabel(monitor.status)}
-                    </Badge>
-                  </label>
-                );
-              })}
+                    Select all
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearVisible}
+                    disabled={
+                      filteredMonitors.length === 0 ||
+                      !filteredMonitors.some((monitor) => draft.monitor_ids.includes(monitor.id))
+                    }
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border bg-card p-2">
+                {filteredMonitors.length === 0 ? (
+                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    No monitors match this filter.
+                  </p>
+                ) : (
+                  filteredMonitors.map((monitor) => {
+                    const checked = draft.monitor_ids.includes(monitor.id);
+                    const inputId = `alert-monitor-${monitor.id}`;
+                    return (
+                      <label
+                        key={monitor.id}
+                        htmlFor={inputId}
+                        className="flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent/40"
+                      >
+                        <Checkbox
+                          id={inputId}
+                          checked={checked}
+                          onCheckedChange={(value) => toggleMonitor(monitor.id, Boolean(value))}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium">{monitor.name}</div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {monitor.url}
+                          </div>
+                        </div>
+                        <Badge className={cn("shrink-0", statusBadgeClass(monitor.status))}>
+                          {statusLabel(monitor.status)}
+                        </Badge>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              {draft.monitor_ids.length === 0 ? (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Select at least one monitor, or switch to "All monitors".
+                </p>
+              ) : null}
             </div>
           )
         ) : null}

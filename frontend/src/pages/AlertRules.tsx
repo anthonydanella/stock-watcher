@@ -1,4 +1,4 @@
-import { Bell, BellOff, Plus, Trash2 } from "lucide-react";
+import { Bell, BellOff, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,9 +19,25 @@ import {
   DialogHeader,
   DialogTitle
 } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
 import { errorMessage, formatDate, statusLabel, timeAgo } from "../lib/format";
 import { cn } from "../lib/utils";
 import type { Monitor, NotificationRule, NotificationRuleInput } from "../types";
+
+type RuleFilter = "all" | "triggered" | "armed" | "paused";
+
+const RULE_FILTERS: { id: RuleFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "triggered", label: "Triggered" },
+  { id: "armed", label: "Armed" },
+  { id: "paused", label: "Paused" }
+];
+
+function ruleState(rule: NotificationRule): Exclude<RuleFilter, "all"> {
+  if (!rule.enabled) return "paused";
+  if (rule.currently_satisfied) return "triggered";
+  return "armed";
+}
 
 export function AlertRules() {
   const [rules, setRules] = React.useState<NotificationRule[]>([]);
@@ -30,6 +46,8 @@ export function AlertRules() {
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editingRule, setEditingRule] = React.useState<NotificationRule | null>(null);
   const [busyId, setBusyId] = React.useState<number | null>(null);
+  const [query, setQuery] = React.useState("");
+  const [filter, setFilter] = React.useState<RuleFilter>("all");
 
   const monitorsById = React.useMemo(() => {
     const map = new Map<number, Monitor>();
@@ -104,6 +122,40 @@ export function AlertRules() {
     }
   }
 
+  const counts = React.useMemo(() => {
+    let triggered = 0;
+    let armed = 0;
+    let paused = 0;
+    for (const rule of rules) {
+      const state = ruleState(rule);
+      if (state === "triggered") triggered++;
+      else if (state === "armed") armed++;
+      else paused++;
+    }
+    return { all: rules.length, triggered, armed, paused };
+  }, [rules]);
+
+  const visible = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = rules.filter((rule) => {
+      if (q && !rule.name.toLowerCase().includes(q)) return false;
+      if (filter === "all") return true;
+      return ruleState(rule) === filter;
+    });
+    const stateOrder: Record<Exclude<RuleFilter, "all">, number> = {
+      triggered: 0,
+      armed: 1,
+      paused: 2
+    };
+    return [...filtered].sort((a, b) => {
+      const so = stateOrder[ruleState(a)] - stateOrder[ruleState(b)];
+      if (so !== 0) return so;
+      return a.name.localeCompare(b.name);
+    });
+  }, [rules, query, filter]);
+
+  const hasFilters = query !== "" || filter !== "all";
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -121,19 +173,92 @@ export function AlertRules() {
       ) : rules.length === 0 ? (
         <EmptyState message='No alert rules yet. Create one to be notified when conditions like "two monitors are in stock" are met.' />
       ) : (
-        <div className="grid gap-3">
-          {rules.map((rule) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              monitorsById={monitorsById}
-              busy={busyId === rule.id}
-              onEdit={() => openEdit(rule)}
-              onToggle={() => void toggleEnabled(rule)}
-              onDelete={() => void remove(rule)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-0 grow sm:max-w-sm">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search rules"
+                aria-label="Search alert rules"
+                className="pl-8"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {RULE_FILTERS.map((option) => {
+                const active = filter === option.id;
+                const count = counts[option.id];
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setFilter(option.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                  >
+                    <span>{option.label}</span>
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 text-[10px] font-medium tabular-nums",
+                        active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                {visible.length === rules.length
+                  ? `${rules.length} ${rules.length === 1 ? "rule" : "rules"}`
+                  : `${visible.length} of ${rules.length} shown`}
+              </span>
+              {hasFilters ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setQuery("");
+                    setFilter("all");
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          {visible.length === 0 ? (
+            <EmptyState message="No rules match the current filters." />
+          ) : (
+            <div className="grid gap-3">
+              {visible.map((rule) => (
+                <RuleCard
+                  key={rule.id}
+                  rule={rule}
+                  monitorsById={monitorsById}
+                  totalMonitors={monitors.length}
+                  busy={busyId === rule.id}
+                  onEdit={() => openEdit(rule)}
+                  onToggle={() => void toggleEnabled(rule)}
+                  onDelete={() => void remove(rule)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
@@ -169,6 +294,7 @@ export function AlertRules() {
 function RuleCard({
   rule,
   monitorsById,
+  totalMonitors,
   busy,
   onEdit,
   onToggle,
@@ -176,11 +302,18 @@ function RuleCard({
 }: {
   rule: NotificationRule;
   monitorsById: Map<number, Monitor>;
+  totalMonitors: number;
   busy: boolean;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }) {
+  const scopeSize = rule.monitor_ids.length === 0 ? totalMonitors : rule.monitor_ids.length;
+  const matching = rule.current_matching_count;
+  const denominator = Math.max(scopeSize, rule.threshold, 1);
+  const progress = Math.min(100, (matching / denominator) * 100);
+  const thresholdPos = Math.min(100, (rule.threshold / denominator) * 100);
+  const state = ruleState(rule);
   const scopeText =
     rule.monitor_ids.length === 0
       ? "all monitors"
@@ -189,11 +322,24 @@ function RuleCard({
   const summary = `When ${rule.threshold} or more of ${scopeText} ${
     rule.trigger_statuses.length === 1 ? "is" : "are in"
   } ${statusText}`;
+  const accent =
+    state === "triggered"
+      ? "border-l-emerald-500/70"
+      : state === "armed"
+        ? "border-l-primary/40"
+        : "border-l-muted";
 
   return (
-    <Card size="sm" className="rounded-md border border-border shadow-sm ring-0">
+    <Card
+      size="sm"
+      className={cn(
+        "rounded-md border border-border border-l-4 shadow-sm ring-0 transition-shadow hover:shadow-md",
+        accent,
+        !rule.enabled && "opacity-75 hover:opacity-100"
+      )}
+    >
       <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-2">
+        <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -202,34 +348,43 @@ function RuleCard({
             >
               {rule.name}
             </button>
-            {rule.enabled ? (
-              rule.currently_satisfied ? (
-                <Badge
-                  variant="default"
-                  className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200"
-                >
-                  Triggered
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="rounded-full">
-                  Armed
-                </Badge>
-              )
-            ) : (
-              <Badge variant="secondary" className="rounded-full">
-                Paused
+            <StateBadge state={state} />
+            {rule.trigger_statuses.map((status) => (
+              <Badge key={status} variant="outline" className="rounded-full text-[10px] uppercase">
+                {statusLabel(status)}
               </Badge>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {rule.current_matching_count} matching now
-            </span>
+            ))}
           </div>
+
           <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{summary}.</p>
+
+          <div className="space-y-1">
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">
+                <span
+                  className={cn(
+                    "font-mono text-sm font-semibold tabular-nums text-foreground",
+                    state === "triggered" && "text-emerald-700 dark:text-emerald-300"
+                  )}
+                >
+                  {matching}
+                </span>{" "}
+                of {scopeSize} matching · threshold {rule.threshold}
+              </span>
+              <span className="text-muted-foreground">
+                Cooldown {rule.cooldown_minutes > 0 ? `${rule.cooldown_minutes} min` : "none"}
+              </span>
+            </div>
+            <ProgressBar
+              progress={progress}
+              thresholdPos={thresholdPos}
+              satisfied={state === "triggered"}
+            />
+          </div>
+
           <RuleMonitorList rule={rule} monitorsById={monitorsById} />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              Cooldown: {rule.cooldown_minutes > 0 ? `${rule.cooldown_minutes} min` : "none"}
-            </span>
+
+          <div className="text-xs text-muted-foreground">
             {rule.last_triggered_at ? (
               <span title={formatDate(rule.last_triggered_at)}>
                 Last triggered {timeAgo(rule.last_triggered_at)}
@@ -239,6 +394,7 @@ function RuleCard({
             )}
           </div>
         </div>
+
         <div className="flex shrink-0 flex-wrap gap-2 sm:flex-nowrap">
           <Button
             variant="outline"
@@ -260,6 +416,7 @@ function RuleCard({
             )}
           </Button>
           <Button variant="secondary" size="sm" disabled={busy} onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
             Edit
           </Button>
           <Button
@@ -275,6 +432,57 @@ function RuleCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function StateBadge({ state }: { state: Exclude<RuleFilter, "all"> }) {
+  if (state === "triggered") {
+    return (
+      <Badge className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">
+        Triggered
+      </Badge>
+    );
+  }
+  if (state === "armed") {
+    return (
+      <Badge variant="outline" className="rounded-full">
+        Armed
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="rounded-full">
+      Paused
+    </Badge>
+  );
+}
+
+function ProgressBar({
+  progress,
+  thresholdPos,
+  satisfied
+}: {
+  progress: number;
+  thresholdPos: number;
+  satisfied: boolean;
+}) {
+  return (
+    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      <div
+        className={cn(
+          "absolute inset-y-0 left-0 transition-all",
+          satisfied ? "bg-emerald-500/80" : "bg-primary/70"
+        )}
+        style={{ width: `${progress}%` }}
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-y-0 w-px bg-foreground/40"
+        style={{ left: `${thresholdPos}%` }}
+        aria-hidden="true"
+        title="Threshold"
+      />
+    </div>
   );
 }
 
