@@ -127,7 +127,7 @@ export function AlertRules() {
   const [busyId, setBusyId] = React.useState<number | null>(null);
   const [query, setQuery] = React.useState("");
   const [filter, setFilter] = React.useState<RuleFilter>("all");
-  const [groupByHost, setGroupByHost] = React.useState(false);
+  const [groupByHost, setGroupByHost] = React.useState(true);
 
   const monitorsById = React.useMemo(() => {
     const map = new Map<number, Monitor>();

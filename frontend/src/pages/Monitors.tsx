@@ -97,7 +97,7 @@ export function Monitors() {
   const [enabledFilter, setEnabledFilter] = React.useState<EnabledFilter>("all");
   const [sortKey, setSortKey] = React.useState<SortKey>("name");
   const [sortDir, setSortDir] = React.useState<SortDir>("asc");
-  const [groupByHost, setGroupByHost] = React.useState(false);
+  const [groupByHost, setGroupByHost] = React.useState(true);
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
