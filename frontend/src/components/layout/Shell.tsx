@@ -13,7 +13,7 @@ export function Shell() {
   return (
     <div className="min-h-screen overflow-x-hidden">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
-        <div className="container mx-auto px-4 sm:px-6 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 py-2 lg:flex-nowrap lg:gap-6 lg:py-0">
+        <div className="mx-auto flex min-h-14 w-full max-w-450 flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-2 lg:flex-nowrap lg:gap-6 lg:py-0">
           <div className="flex min-w-0 items-center gap-2">
             <Link
               to="/"
@@ -44,7 +44,7 @@ export function Shell() {
           </nav>
         </div>
       </header>
-      <main className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+      <main className="mx-auto w-full max-w-450 px-3 sm:px-4 py-4 sm:py-6">
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Dashboard />} />

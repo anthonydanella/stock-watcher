@@ -71,11 +71,12 @@ export function NotificationsCell({
         aria-label={state.ariaLabel}
         title={state.summary}
         className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          state.tone
+          "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          state.chipClass
         )}
       >
-        <state.Icon className="h-4 w-4" aria-hidden="true" />
+        <state.Icon className="h-3 w-3" aria-hidden="true" />
+        <span>{state.chipLabel}</span>
       </PopoverTrigger>
       <PopoverContent side="bottom" align="start" className="w-72 gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -135,17 +136,26 @@ export function NotificationsCell({
 
 type CellState = {
   Icon: typeof Bell;
-  tone: string;
+  chipLabel: string;
+  chipClass: string;
   summary: string;
   ariaLabel: string;
   warning: string | null;
 };
 
+const CHIP_ON =
+  "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/60";
+const CHIP_OFF =
+  "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700/50 dark:bg-zinc-800/40 dark:text-zinc-300 dark:hover:bg-zinc-800/60";
+const CHIP_WARN =
+  "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-950/50";
+
 function describeState(monitor: Monitor): CellState {
   if (!monitor.notifications_enabled) {
     return {
       Icon: BellOff,
-      tone: "text-muted-foreground",
+      chipLabel: "Off",
+      chipClass: CHIP_OFF,
       summary: "Notifications muted",
       ariaLabel: "Notifications off",
       warning: null
@@ -158,8 +168,9 @@ function describeState(monitor: Monitor): CellState {
   ].filter(Boolean).length;
   if (enabled === 0) {
     return {
-      Icon: Bell,
-      tone: "text-amber-600 dark:text-amber-400",
+      Icon: AlertTriangle,
+      chipLabel: "Silent",
+      chipClass: CHIP_WARN,
       summary: "Master on, but no events selected",
       ariaLabel: "Notifications on but no events selected",
       warning: "No event types are enabled — this monitor will never notify."
@@ -167,7 +178,8 @@ function describeState(monitor: Monitor): CellState {
   }
   return {
     Icon: Bell,
-    tone: "text-primary",
+    chipLabel: enabled === 3 ? "On" : `On · ${enabled}/3`,
+    chipClass: CHIP_ON,
     summary: `On · ${enabled} of 3 events`,
     ariaLabel: `Notifications on, ${enabled} of 3 events`,
     warning: null
