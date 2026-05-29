@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, BellOff } from "lucide-react";
+import { AlertTriangle, Bell, BellOff, ChevronDown } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
@@ -71,14 +71,15 @@ export function NotificationsCell({
         aria-label={state.ariaLabel}
         title={state.summary}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "inline-flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:min-h-0 lg:px-2",
           state.chipClass
         )}
       >
-        <state.Icon className="h-3 w-3" aria-hidden="true" />
+        <state.Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
         <span>{state.chipLabel}</span>
+        <ChevronDown className="-mr-0.5 h-3 w-3 shrink-0 opacity-60 lg:hidden" aria-hidden="true" />
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" className="w-72 gap-3">
+      <PopoverContent side="bottom" align="start" className="w-[min(18rem,calc(100vw-2rem))] gap-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="text-sm font-medium">Notifications</div>

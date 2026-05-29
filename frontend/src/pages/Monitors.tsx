@@ -18,6 +18,7 @@ import { hostFromUrl } from "../components/monitors/editor/helpers";
 import { type MonitorActionKind, MonitorActions } from "../components/monitors/MonitorActions";
 import { MonitorListCard } from "../components/monitors/MonitorListCard";
 import { MonitorScreenshot } from "../components/monitors/MonitorScreenshot";
+import { NextCheckSummary } from "../components/monitors/NextCheckSummary";
 import { NotificationsCell } from "../components/monitors/NotificationsCell";
 import { ScheduleEditPopover } from "../components/monitors/ScheduleEditPopover";
 import { StockEditPopover } from "../components/monitors/StockEditPopover";
@@ -35,14 +36,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/toolti
 import {
   errorMessage,
   failureTypeLabel,
-  formatCadence,
   formatDate,
-  formatShortDate,
   statusBadgeClass,
   statusLabel,
   timeAgo
 } from "../lib/format";
-import { monitorCopyPayload } from "../lib/monitor";
+import { isCoolingDown, monitorCopyPayload } from "../lib/monitor";
 import { cn } from "../lib/utils";
 import type { Monitor } from "../types";
 
@@ -69,12 +68,6 @@ const ENABLED_FILTERS = [
 ] as const;
 
 type EnabledFilter = (typeof ENABLED_FILTERS)[number]["id"];
-
-function isCoolingDown(monitor: Monitor) {
-  if (!monitor.cooldown_until) return false;
-  const t = new Date(monitor.cooldown_until).getTime();
-  return !Number.isNaN(t) && t > Date.now();
-}
 
 function stockSortValue(monitor: Monitor): number {
   if (monitor.stock_mode === "quantity") return monitor.last_quantity ?? -1;
@@ -291,16 +284,40 @@ export function Monitors() {
             onGroupByHostChange={setGroupByHost}
           />
 
-          <div className="grid gap-3 lg:hidden">
-            {sorted.map((monitor) => (
-              <MonitorListCard
-                key={monitor.id}
-                monitor={monitor}
-                busyActions={busyActions}
-                onAction={action}
-                onDuplicate={duplicate}
-              />
-            ))}
+          <div className="space-y-5 lg:hidden">
+            {grouped
+              ? grouped.map(([host, hostMonitors]) => (
+                  <div key={host} className="space-y-3">
+                    <div className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+                      <span className="font-mono text-foreground">{host}</span>
+                      <span>
+                        · {hostMonitors.length} {hostMonitors.length === 1 ? "monitor" : "monitors"}
+                      </span>
+                    </div>
+                    <div className="grid gap-3">
+                      {hostMonitors.map((monitor) => (
+                        <MonitorListCard
+                          key={monitor.id}
+                          monitor={monitor}
+                          busyActions={busyActions}
+                          onAction={action}
+                          onDuplicate={duplicate}
+                          onPatch={patchMonitor}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              : sorted.map((monitor) => (
+                  <MonitorListCard
+                    key={monitor.id}
+                    monitor={monitor}
+                    busyActions={busyActions}
+                    onAction={action}
+                    onDuplicate={duplicate}
+                    onPatch={patchMonitor}
+                  />
+                ))}
             {!sorted.length ? (
               <EmptyState
                 message={
@@ -460,7 +477,7 @@ function MonitorsToolbar({
       ? `${totalCount} ${totalCount === 1 ? "monitor" : "monitors"}`
       : `${visibleCount} of ${totalCount}`;
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="w-full min-w-0 sm:w-72">
         <InputGroup className="h-8">
           <InputGroupInput
@@ -496,7 +513,7 @@ function MonitorsToolbar({
           </Button>
         ) : null}
       </div>
-      <div className="ml-auto flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3 sm:ml-auto sm:justify-start">
         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{countLabel}</span>
         <ToggleGroup
           variant="outline"
@@ -660,41 +677,6 @@ function MonitorRow({
         </div>
       </TableCell>
     </tr>
-  );
-}
-
-function NextCheckSummary({ monitor, cooling }: { monitor: Monitor; cooling: boolean }) {
-  if (!monitor.enabled) {
-    return (
-      <>
-        <span className="block truncate leading-tight">Paused</span>
-        <span className="block truncate text-xs leading-tight text-muted-foreground">
-          {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
-        </span>
-      </>
-    );
-  }
-  if (cooling) {
-    return (
-      <>
-        <span className="block truncate leading-tight text-violet-700 dark:text-violet-300">
-          Cooling {timeAgo(monitor.cooldown_until)}
-        </span>
-        <span className="block truncate text-xs leading-tight text-muted-foreground">
-          then {formatShortDate(monitor.cooldown_until)}
-        </span>
-      </>
-    );
-  }
-  return (
-    <>
-      <span className="block truncate leading-tight">
-        {monitor.next_check_at ? formatShortDate(monitor.next_check_at) : "—"}
-      </span>
-      <span className="block truncate text-xs leading-tight text-muted-foreground">
-        {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
-      </span>
-    </>
   );
 }
 
