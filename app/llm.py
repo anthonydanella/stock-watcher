@@ -29,10 +29,10 @@ from bs4 import BeautifulSoup
 
 from app.config import Settings
 from app.models import AppSettings
+from app.quantity import parse_quantity
 from app.rules import (
     evaluate_rule_diagnostics,
     normalize_for_match,
-    parse_quantity,
     selector_encodes_stock_state,
 )
 
