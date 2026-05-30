@@ -18,7 +18,7 @@ from app.models import (
     STOCK_MODE_QUANTITY,
     Monitor,
 )
-from app.rules import parse_quantity
+from app.quantity import parse_quantity
 from tests.checker_helpers import FakeChecker, FakeNtfy, repo, require_monitor, settings
 
 
