@@ -15,6 +15,10 @@ on:
     types: [completed]
     branches: [main]
 
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
 jobs:
   build:
     # Run only if CI succeeded. Commit messages can opt out: "feat: tweak copy [skip deploy]".
