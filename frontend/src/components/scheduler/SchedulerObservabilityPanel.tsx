@@ -11,16 +11,17 @@ import type React from "react";
 import { formatDate, formatSeconds, statusBadgeClass, warningAlertClass } from "../../lib/format";
 import type { SchedulerStatus } from "../../types";
 import { InfoTooltip } from "../shared/InfoTooltip";
+import { PanelCard } from "../shared/PanelCard";
 import { Alert } from "../ui/alert";
 import { Badge } from "../ui/badge";
-import { Card, CardContent } from "../ui/card";
+import { CardContent } from "../ui/card";
 
 export function SchedulerObservabilityPanel({ status }: { status: SchedulerStatus | null }) {
   const health = schedulerHealth(status);
   const browser = browserHealth(status);
 
   return (
-    <Card className="min-w-0 rounded-md border border-border shadow-sm ring-0">
+    <PanelCard className="min-w-0">
       <CardContent className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -119,7 +120,7 @@ export function SchedulerObservabilityPanel({ status }: { status: SchedulerStatu
           </div>
         </div>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }
 

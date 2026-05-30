@@ -12,9 +12,10 @@ import { cn } from "../../lib/utils";
 import type { CheckAttempt, Monitor } from "../../types";
 import { EmptyState } from "../shared/EmptyState";
 import { EvidenceViewer, HighlightedText } from "../shared/EvidenceViewer";
+import { PanelCard } from "../shared/PanelCard";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
 import { Table, TableCell, TableHead } from "../ui/table";
 
@@ -59,7 +60,7 @@ export function MonitorHistory({
   }
 
   return (
-    <Card className="min-w-0 overflow-hidden rounded-md border border-border shadow-sm ring-0">
+    <PanelCard className="min-w-0 overflow-hidden">
       <CardHeader>
         <CardTitle>Check history</CardTitle>
         <CardDescription>
@@ -258,7 +259,7 @@ export function MonitorHistory({
           <EmptyState message="Run this monitor or wait for the scheduler to record check attempts." />
         )}
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }
 

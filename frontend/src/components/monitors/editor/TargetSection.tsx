@@ -2,9 +2,10 @@ import { ExternalLink, Globe2 } from "lucide-react";
 import React from "react";
 import type { Monitor } from "../../../types";
 import { FormField } from "../../shared/FormFields";
+import { PanelCard } from "../../shared/PanelCard";
 import { TagInput } from "../../shared/TagInput";
 import { Button } from "../../ui/button";
-import { Card, CardContent, CardHeader } from "../../ui/card";
+import { CardContent, CardHeader } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Switch } from "../../ui/switch";
@@ -25,7 +26,7 @@ export function TargetSection({
   const enabled = Boolean(monitor.enabled);
 
   return (
-    <Card className="rounded-md border border-border shadow-sm ring-0">
+    <PanelCard>
       <CardHeader>
         <SectionTitle
           icon={Globe2}
@@ -92,6 +93,6 @@ export function TargetSection({
           <TagInput value={monitor.tags ?? []} onChange={(next) => onPatch("tags", next)} />
         </FormField>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }

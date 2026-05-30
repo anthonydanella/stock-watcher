@@ -21,10 +21,11 @@ import {
 import { cn } from "../../../lib/utils";
 import type { Monitor, RuleLabResult } from "../../../types";
 import { type EvidenceHighlightMode, EvidenceViewer } from "../../shared/EvidenceViewer";
+import { PanelCard } from "../../shared/PanelCard";
 import { Alert } from "../../ui/alert";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
-import { Card, CardContent, CardHeader } from "../../ui/card";
+import { CardContent, CardHeader } from "../../ui/card";
 import { SectionTitle } from "./EditorChrome";
 import { labPayload, labSignature, validLabUrl } from "./labShared";
 
@@ -105,7 +106,7 @@ export function RuleLab({ monitor }: { monitor: Partial<Monitor> }) {
   );
 
   return (
-    <Card className="rounded-md border border-border shadow-sm ring-0">
+    <PanelCard>
       <CardHeader>
         <SectionTitle
           icon={FlaskConical}
@@ -177,7 +178,7 @@ export function RuleLab({ monitor }: { monitor: Partial<Monitor> }) {
           </>
         ) : null}
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }
 

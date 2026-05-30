@@ -6,9 +6,10 @@ import { api } from "../api";
 import { FormField, ToggleField } from "../components/shared/FormFields";
 import { InfoTooltip } from "../components/shared/InfoTooltip";
 import { PageHeader } from "../components/shared/PageHeader";
+import { PanelCard } from "../components/shared/PanelCard";
 import { EditorSkeleton } from "../components/shared/Skeletons";
 import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
+import { CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import {
   Select,
@@ -125,14 +126,14 @@ export function SettingsPage() {
         description="Configure ntfy alerts and the LLM used to draft quantity regexes."
       />
       {loading ? (
-        <Card className="overflow-visible rounded-md border border-border shadow-sm ring-0">
+        <PanelCard className="overflow-visible">
           <CardContent>
             <EditorSkeleton />
           </CardContent>
-        </Card>
+        </PanelCard>
       ) : (
         <form className="space-y-6" onSubmit={save}>
-          <Card className="overflow-visible rounded-md border border-border shadow-sm ring-0">
+          <PanelCard className="overflow-visible">
             <CardContent>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="flex items-center gap-2 md:col-span-2">
@@ -222,9 +223,9 @@ export function SettingsPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </PanelCard>
 
-          <Card className="overflow-visible rounded-md border border-border shadow-sm ring-0">
+          <PanelCard className="overflow-visible">
             <CardContent>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="flex items-center gap-2 md:col-span-2">
@@ -311,7 +312,7 @@ export function SettingsPage() {
                 ) : null}
               </div>
             </CardContent>
-          </Card>
+          </PanelCard>
 
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={Boolean(busyAction) || Boolean(extraParamsError)}>

@@ -4,8 +4,9 @@ import { formatDuration, parseDuration } from "../../../lib/duration";
 import type { Monitor } from "../../../types";
 import { FormField } from "../../shared/FormFields";
 import { InfoTooltip } from "../../shared/InfoTooltip";
+import { PanelCard } from "../../shared/PanelCard";
 import { Button } from "../../ui/button";
-import { Card, CardContent, CardHeader } from "../../ui/card";
+import { CardContent, CardHeader } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../../ui/input-group";
 import { Label } from "../../ui/label";
@@ -146,7 +147,7 @@ export function TimingSection({
   );
 
   return (
-    <Card className="rounded-md border border-border shadow-sm ring-0">
+    <PanelCard>
       <CardHeader>
         <SectionTitle
           icon={Timer}
@@ -230,6 +231,6 @@ export function TimingSection({
           ) : null}
         </section>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }

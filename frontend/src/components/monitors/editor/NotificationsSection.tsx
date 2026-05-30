@@ -1,7 +1,8 @@
 import { Bell } from "lucide-react";
 import type { Monitor } from "../../../types";
 import { ToggleField } from "../../shared/FormFields";
-import { Card, CardContent, CardHeader } from "../../ui/card";
+import { PanelCard } from "../../shared/PanelCard";
+import { CardContent, CardHeader } from "../../ui/card";
 import { SectionTitle, SubSectionLabel } from "./EditorChrome";
 import type { MonitorPatch } from "./types";
 
@@ -18,7 +19,7 @@ export function NotificationsSection({
   const challengeAlerts = monitor.notify_on_challenge ?? true;
 
   return (
-    <Card className="rounded-md border border-border shadow-sm ring-0">
+    <PanelCard>
       <CardHeader>
         <SectionTitle
           icon={Bell}
@@ -59,6 +60,6 @@ export function NotificationsSection({
           </div>
         </section>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }

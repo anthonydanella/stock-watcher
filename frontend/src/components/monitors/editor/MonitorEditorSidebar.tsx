@@ -1,7 +1,8 @@
 import { CheckCircle2, ShieldAlert } from "lucide-react";
 import { successAlertClass, warningAlertClass } from "../../../lib/format";
+import { PanelCard } from "../../shared/PanelCard";
 import { Alert } from "../../ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { CardContent, CardHeader, CardTitle } from "../../ui/card";
 import type { ValidationIssue } from "./helpers";
 
 export function MonitorEditorSidebar({ validation }: { validation: ValidationIssue[] }) {
@@ -18,7 +19,7 @@ export function MonitorEditorSidebar({ validation }: { validation: ValidationIss
   const warningCount = validation.length - errorCount;
 
   return (
-    <Card className="rounded-md border border-border shadow-sm ring-0">
+    <PanelCard>
       <CardHeader>
         <div className="flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-muted-foreground" />
@@ -41,6 +42,6 @@ export function MonitorEditorSidebar({ validation }: { validation: ValidationIss
           </Alert>
         ))}
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }
