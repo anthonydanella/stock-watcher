@@ -1,9 +1,19 @@
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Plus, Search, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Layers,
+  Plus,
+  Search,
+  X
+} from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { api } from "../api";
+import { hostFromUrl } from "../components/monitors/editor/helpers";
 import { type MonitorActionKind, MonitorActions } from "../components/monitors/MonitorActions";
 import { MonitorListCard } from "../components/monitors/MonitorListCard";
 import { MonitorQuantitySparkline } from "../components/monitors/MonitorQuantitySparkline";
@@ -17,6 +27,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Table, TableCell, TableHead } from "../components/ui/table";
+import { Toggle } from "../components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import {
@@ -86,6 +97,7 @@ export function Monitors() {
   const [enabledFilter, setEnabledFilter] = React.useState<EnabledFilter>("all");
   const [sortKey, setSortKey] = React.useState<SortKey>("name");
   const [sortDir, setSortDir] = React.useState<SortDir>("asc");
+  const [groupByHost, setGroupByHost] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -217,6 +229,18 @@ export function Monitors() {
     return list;
   }, [filtered, sortKey, sortDir]);
 
+  const grouped = React.useMemo(() => {
+    if (!groupByHost) return null;
+    const map = new Map<string, Monitor[]>();
+    for (const monitor of sorted) {
+      const host = hostFromUrl(monitor.url) || "(no host)";
+      const list = map.get(host);
+      if (list) list.push(monitor);
+      else map.set(host, [monitor]);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [sorted, groupByHost]);
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
@@ -261,6 +285,8 @@ export function Monitors() {
             totalCount={monitors.length}
             hasFilters={hasFilters}
             onClear={clearFilters}
+            groupByHost={groupByHost}
+            onGroupByHostChange={setGroupByHost}
           />
 
           <div className="grid gap-3 lg:hidden">
@@ -332,17 +358,49 @@ export function Monitors() {
                     <TableHead className="w-32 pr-4 text-right">Actions</TableHead>
                   </tr>
                 </thead>
-                <tbody>
-                  {sorted.map((monitor) => (
-                    <MonitorRow
-                      key={monitor.id}
-                      monitor={monitor}
-                      busyActions={busyActions}
-                      onAction={action}
-                      onDuplicate={duplicate}
-                    />
-                  ))}
-                  {!sorted.length ? (
+                {grouped ? (
+                  grouped.map(([host, hostMonitors]) => (
+                    <tbody key={host} className="not-first-of-type:border-t">
+                      <tr className="bg-muted/40">
+                        <TableCell
+                          colSpan={7}
+                          className="px-4 py-1.5 text-xs font-medium text-muted-foreground"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-foreground">{host}</span>
+                            <span className="text-muted-foreground">
+                              · {hostMonitors.length}{" "}
+                              {hostMonitors.length === 1 ? "monitor" : "monitors"}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </tr>
+                      {hostMonitors.map((monitor) => (
+                        <MonitorRow
+                          key={monitor.id}
+                          monitor={monitor}
+                          busyActions={busyActions}
+                          onAction={action}
+                          onDuplicate={duplicate}
+                        />
+                      ))}
+                    </tbody>
+                  ))
+                ) : (
+                  <tbody>
+                    {sorted.map((monitor) => (
+                      <MonitorRow
+                        key={monitor.id}
+                        monitor={monitor}
+                        busyActions={busyActions}
+                        onAction={action}
+                        onDuplicate={duplicate}
+                      />
+                    ))}
+                  </tbody>
+                )}
+                {!sorted.length ? (
+                  <tbody>
                     <tr>
                       <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                         {monitors.length === 0
@@ -350,8 +408,8 @@ export function Monitors() {
                           : "No monitors match the current filters."}
                       </TableCell>
                     </tr>
-                  ) : null}
-                </tbody>
+                  </tbody>
+                ) : null}
               </Table>
             </CardContent>
           </Card>
@@ -373,7 +431,9 @@ function MonitorsToolbar({
   visibleCount,
   totalCount,
   hasFilters,
-  onClear
+  onClear,
+  groupByHost,
+  onGroupByHostChange
 }: {
   query: string;
   onQueryChange: (value: string) => void;
@@ -387,6 +447,8 @@ function MonitorsToolbar({
   totalCount: number;
   hasFilters: boolean;
   onClear: () => void;
+  groupByHost: boolean;
+  onGroupByHostChange: (value: boolean) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -424,6 +486,17 @@ function MonitorsToolbar({
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+        <Toggle
+          variant="outline"
+          size="sm"
+          pressed={groupByHost}
+          onPressedChange={onGroupByHostChange}
+          aria-label="Group by host"
+          title="Group by host"
+        >
+          <Layers className="h-3.5 w-3.5" />
+          Group by host
+        </Toggle>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
             {visibleCount === totalCount

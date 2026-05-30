@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { AlertTriangle, Search } from "lucide-react";
 import React from "react";
 import { statusBadgeClass, statusLabel } from "../../lib/format";
 import { cn } from "../../lib/utils";
@@ -9,6 +9,7 @@ import {
   type NotificationRule,
   type NotificationRuleInput
 } from "../../types";
+import { hostFromUrl } from "../monitors/editor/helpers";
 import { FormField, NumberField, ToggleField } from "../shared/FormFields";
 import { InfoTooltip } from "../shared/InfoTooltip";
 import { Badge } from "../ui/badge";
@@ -71,6 +72,19 @@ export function AlertRuleEditor({
       (monitor) => monitor.name.toLowerCase().includes(q) || monitor.url.toLowerCase().includes(q)
     );
   }, [monitors, monitorQuery]);
+
+  const selectedHosts = React.useMemo(() => {
+    if (scopeMode !== "specific") return [];
+    const set = new Set<string>();
+    const byId = new Map(monitors.map((monitor) => [monitor.id, monitor]));
+    for (const id of draft.monitor_ids) {
+      const monitor = byId.get(id);
+      if (!monitor) continue;
+      const host = hostFromUrl(monitor.url);
+      if (host) set.add(host);
+    }
+    return [...set].sort();
+  }, [draft.monitor_ids, monitors, scopeMode]);
 
   function patch(next: Partial<NotificationRuleInput>) {
     setDraft((current) => ({ ...current, ...next }));
@@ -188,7 +202,8 @@ export function AlertRuleEditor({
           Watch monitors
           <InfoTooltip>
             Pick which monitors are evaluated. "All monitors" includes monitors created later
-            automatically.
+            automatically. For best results, keep every monitor in a rule on the same host so the
+            rule reasons about a single retailer's stock.
           </InfoTooltip>
         </legend>
         <div className="flex flex-wrap gap-2">
@@ -292,6 +307,26 @@ export function AlertRuleEditor({
                 <p className="text-xs text-amber-700 dark:text-amber-400">
                   Select at least one monitor, or switch to "All monitors".
                 </p>
+              ) : null}
+              {selectedHosts.length > 1 ? (
+                <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 px-2.5 py-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+                  <AlertTriangle
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                    aria-hidden="true"
+                  />
+                  <div className="space-y-1">
+                    <p>
+                      You've picked monitors across{" "}
+                      <span className="font-medium">{selectedHosts.length} hosts</span> (
+                      <span className="font-mono">{selectedHosts.join(", ")}</span>).
+                    </p>
+                    <p>
+                      Alerts work best when every watched monitor shares the same host so the rule
+                      reasons about one retailer's stock. Consider splitting this into one rule per
+                      host.
+                    </p>
+                  </div>
+                </div>
               ) : null}
             </div>
           )

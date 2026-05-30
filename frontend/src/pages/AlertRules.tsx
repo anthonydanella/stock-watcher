@@ -1,10 +1,23 @@
-import { Bell, BellOff, Copy, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  BellOff,
+  Copy,
+  Globe,
+  Layers,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X
+} from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { api } from "../api";
 import { AlertRuleEditor } from "../components/alerts/AlertRuleEditor";
+import { hostFromUrl } from "../components/monitors/editor/helpers";
 import { EmptyState } from "../components/shared/EmptyState";
 import { PageHeader } from "../components/shared/PageHeader";
 import { MonitorListSkeleton } from "../components/shared/Skeletons";
@@ -20,6 +33,8 @@ import {
   DialogTitle
 } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
+import { Toggle } from "../components/ui/toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import { errorMessage, formatDate, statusLabel, timeAgo } from "../lib/format";
 import { cn } from "../lib/utils";
 import type { Monitor, NotificationRule, NotificationRuleInput } from "../types";
@@ -39,6 +54,70 @@ function ruleState(rule: NotificationRule): Exclude<RuleFilter, "all"> {
   return "armed";
 }
 
+type HostBucket = {
+  kind: "single" | "all" | "mixed" | "unknown";
+  /** Stable key used for grouping & sorting. */
+  key: string;
+  /** Human-facing label. For single-host rules this is the bare hostname. */
+  label: string;
+  /** Unique sorted hosts the rule watches (empty for "all" / "unknown"). */
+  hosts: string[];
+};
+
+function ruleHostBucket(rule: NotificationRule, monitorsById: Map<number, Monitor>): HostBucket {
+  if (rule.monitor_ids.length === 0) {
+    return { kind: "all", key: "all", label: "All monitors", hosts: [] };
+  }
+  const hosts = new Set<string>();
+  for (const id of rule.monitor_ids) {
+    const monitor = monitorsById.get(id);
+    if (!monitor) continue;
+    const host = hostFromUrl(monitor.url);
+    if (host) hosts.add(host);
+  }
+  if (hosts.size === 0) {
+    return { kind: "unknown", key: "unknown", label: "Unknown host", hosts: [] };
+  }
+  if (hosts.size === 1) {
+    const [host] = hosts;
+    return { kind: "single", key: `single:${host}`, label: host, hosts: [host] };
+  }
+  const sortedHosts = [...hosts].sort();
+  return { kind: "mixed", key: "mixed", label: "Mixed hosts", hosts: sortedHosts };
+}
+
+const HOST_BUCKET_ORDER: Record<HostBucket["kind"], number> = {
+  single: 0,
+  all: 1,
+  mixed: 2,
+  unknown: 3
+};
+
+function groupVisibleByHost(
+  rules: NotificationRule[],
+  monitorsById: Map<number, Monitor>
+): [HostBucket, NotificationRule[]][] {
+  const buckets = new Map<string, { bucket: HostBucket; rules: NotificationRule[] }>();
+  for (const rule of rules) {
+    const bucket = ruleHostBucket(rule, monitorsById);
+    const entry = buckets.get(bucket.key);
+    if (entry) {
+      entry.rules.push(rule);
+    } else {
+      buckets.set(bucket.key, { bucket, rules: [rule] });
+    }
+  }
+  return [...buckets.values()]
+    .sort((a, b) => {
+      const order = HOST_BUCKET_ORDER[a.bucket.kind] - HOST_BUCKET_ORDER[b.bucket.kind];
+      if (order !== 0) return order;
+      return a.bucket.label.localeCompare(b.bucket.label);
+    })
+    .map(
+      ({ bucket, rules: bucketRules }) => [bucket, bucketRules] as [HostBucket, NotificationRule[]]
+    );
+}
+
 export function AlertRules() {
   const [rules, setRules] = React.useState<NotificationRule[]>([]);
   const [monitors, setMonitors] = React.useState<Monitor[]>([]);
@@ -48,6 +127,7 @@ export function AlertRules() {
   const [busyId, setBusyId] = React.useState<number | null>(null);
   const [query, setQuery] = React.useState("");
   const [filter, setFilter] = React.useState<RuleFilter>("all");
+  const [groupByHost, setGroupByHost] = React.useState(false);
 
   const monitorsById = React.useMemo(() => {
     const map = new Map<number, Monitor>();
@@ -180,7 +260,7 @@ export function AlertRules() {
     <div className="space-y-6">
       <PageHeader
         title="Alert rules"
-        description="Custom notifications that fire when a condition spans multiple monitors — e.g. when two of your watched products are in stock at once."
+        description="Cross-monitor notifications — fire when N watched monitors hit a status (e.g. two PS5 listings back in stock). Works best when every monitor in a rule shares one host so it tracks a single retailer."
       >
         <Button onClick={openNew}>
           <Plus className="h-4 w-4" />
@@ -238,6 +318,17 @@ export function AlertRules() {
                 );
               })}
             </div>
+            <Toggle
+              variant="outline"
+              size="sm"
+              pressed={groupByHost}
+              onPressedChange={setGroupByHost}
+              aria-label="Group by host"
+              title="Group rules by the host they watch"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Group by host
+            </Toggle>
             <div className="ml-auto flex items-center gap-3">
               <span className="text-xs text-muted-foreground">
                 {visible.length === rules.length
@@ -262,6 +353,29 @@ export function AlertRules() {
 
           {visible.length === 0 ? (
             <EmptyState message="No rules match the current filters." />
+          ) : groupByHost ? (
+            <div className="space-y-6">
+              {groupVisibleByHost(visible, monitorsById).map(([bucket, items]) => (
+                <section key={bucket.key} className="space-y-2">
+                  <RuleGroupHeader bucket={bucket} count={items.length} />
+                  <div className="grid gap-3">
+                    {items.map((rule) => (
+                      <RuleCard
+                        key={rule.id}
+                        rule={rule}
+                        monitorsById={monitorsById}
+                        totalMonitors={monitors.length}
+                        busy={busyId === rule.id}
+                        onEdit={() => openEdit(rule)}
+                        onToggle={() => void toggleEnabled(rule)}
+                        onDuplicate={() => void duplicate(rule)}
+                        onDelete={() => void remove(rule)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           ) : (
             <div className="grid gap-3">
               {visible.map((rule) => (
@@ -337,6 +451,7 @@ function RuleCard({
   const progress = Math.min(100, (matching / denominator) * 100);
   const thresholdPos = Math.min(100, (rule.threshold / denominator) * 100);
   const state = ruleState(rule);
+  const host = ruleHostBucket(rule, monitorsById);
   const statusText = rule.trigger_statuses.map(statusLabel).join(" or ").toLowerCase();
   const scopeText =
     rule.monitor_ids.length === 0
@@ -371,7 +486,7 @@ function RuleCard({
     >
       <CardContent className="space-y-3">
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <StateDot state={state} />
             <button
               type="button"
@@ -381,6 +496,7 @@ function RuleCard({
               {rule.name}
             </button>
             <StateBadge state={state} />
+            <HostChip bucket={host} />
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             <Button variant="secondary" size="sm" disabled={busy} onClick={onEdit}>
@@ -487,6 +603,96 @@ function IconButton({
       {children}
     </Button>
   );
+}
+
+function RuleGroupHeader({ bucket, count }: { bucket: HostBucket; count: number }) {
+  const isMixed = bucket.kind === "mixed";
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-2 border-b pb-1.5",
+        isMixed ? "border-amber-300/50" : "border-border/60"
+      )}
+    >
+      <HostBucketIcon kind={bucket.kind} />
+      <h3
+        className={cn(
+          "font-mono text-sm",
+          isMixed ? "text-amber-700 dark:text-amber-300" : "text-foreground"
+        )}
+      >
+        {bucket.label}
+      </h3>
+      <span className="text-xs text-muted-foreground">
+        · {count} {count === 1 ? "rule" : "rules"}
+      </span>
+      {isMixed ? (
+        <Tooltip>
+          <TooltipTrigger
+            aria-label="About mixed-host rules"
+            className="ml-1 inline-flex items-center text-amber-700 hover:text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-amber-300"
+          >
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-xs whitespace-normal text-left">
+            These rules watch monitors from multiple hosts ({bucket.hosts.join(", ")}). Alerts work
+            best when every monitor in a rule shares one retailer so the rule reasons about a single
+            source of stock.
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
+    </div>
+  );
+}
+
+function HostChip({ bucket }: { bucket: HostBucket }) {
+  if (bucket.kind === "unknown") return null;
+  if (bucket.kind === "mixed") {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          aria-label="Mixed-host rule"
+          className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+          Mixed hosts ({bucket.hosts.length})
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs whitespace-normal text-left">
+          Watches monitors from {bucket.hosts.join(", ")}. Alerts work best when every monitor in a
+          rule shares one retailer — consider splitting this rule into one per host.
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  if (bucket.kind === "all") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+        <Layers className="h-3 w-3" aria-hidden="true" />
+        All monitors
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5 font-mono text-[11px] text-foreground/80">
+      <Globe className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+      {bucket.label}
+    </span>
+  );
+}
+
+function HostBucketIcon({ kind }: { kind: HostBucket["kind"] }) {
+  if (kind === "mixed") {
+    return (
+      <AlertTriangle
+        className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400"
+        aria-hidden="true"
+      />
+    );
+  }
+  if (kind === "all") {
+    return <Layers className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />;
+  }
+  return <Globe className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />;
 }
 
 function StateDot({ state }: { state: Exclude<RuleFilter, "all"> }) {
