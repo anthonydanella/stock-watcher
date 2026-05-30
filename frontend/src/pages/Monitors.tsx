@@ -37,7 +37,7 @@ import {
   failureTypeLabel,
   formatCadence,
   formatDate,
-  formatScheduleState,
+  formatShortDate,
   statusBadgeClass,
   statusLabel,
   timeAgo
@@ -341,7 +341,7 @@ export function Monitors() {
                       direction={sortDir}
                       onClick={toggleSort}
                     />
-                    <TableHead className="w-20">Notif</TableHead>
+                    <TableHead className="w-32">Notifications</TableHead>
                     <SortableHead
                       label="Last check"
                       className="w-32"
@@ -656,7 +656,7 @@ function MonitorRow({
       <TableCell className="w-28 py-2">
         <StockCell monitor={monitor} isQuantity={isQuantity} onPatch={onPatch} />
       </TableCell>
-      <TableCell className="w-20 py-2">
+      <TableCell className="w-32 py-2">
         <NotificationsCell monitor={monitor} onSaved={onPatch} />
       </TableCell>
       <TableCell className="w-32 py-2 text-sm">
@@ -671,12 +671,9 @@ function MonitorRow({
           <span className="text-muted-foreground">Never</span>
         )}
       </TableCell>
-      <TableCell className="w-40 py-2 text-sm">
+      <TableCell className="w-40 min-w-0 py-2 text-sm">
         <ScheduleEditPopover monitor={monitor} onSaved={onPatch}>
-          <span className="leading-tight">{formatScheduleState(monitor, true)}</span>
-          <span className="text-xs leading-tight text-muted-foreground">
-            {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
-          </span>
+          <NextCheckSummary monitor={monitor} cooling={cooling} />
         </ScheduleEditPopover>
       </TableCell>
       <TableCell className="w-32 py-2 pr-4">
@@ -691,6 +688,41 @@ function MonitorRow({
         </div>
       </TableCell>
     </tr>
+  );
+}
+
+function NextCheckSummary({ monitor, cooling }: { monitor: Monitor; cooling: boolean }) {
+  if (!monitor.enabled) {
+    return (
+      <>
+        <span className="block truncate leading-tight">Paused</span>
+        <span className="block truncate text-xs leading-tight text-muted-foreground">
+          {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
+        </span>
+      </>
+    );
+  }
+  if (cooling) {
+    return (
+      <>
+        <span className="block truncate leading-tight text-violet-700 dark:text-violet-300">
+          Cooling {timeAgo(monitor.cooldown_until)}
+        </span>
+        <span className="block truncate text-xs leading-tight text-muted-foreground">
+          then {formatShortDate(monitor.cooldown_until)}
+        </span>
+      </>
+    );
+  }
+  return (
+    <>
+      <span className="block truncate leading-tight">
+        {monitor.next_check_at ? formatShortDate(monitor.next_check_at) : "—"}
+      </span>
+      <span className="block truncate text-xs leading-tight text-muted-foreground">
+        {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
+      </span>
+    </>
   );
 }
 

@@ -3,6 +3,7 @@ import React from "react";
 import { toast } from "sonner";
 
 import { api } from "../../api";
+import { formatDuration, parseDuration } from "../../lib/duration";
 import { errorMessage, formatDate } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import type { Monitor } from "../../types";
@@ -19,6 +20,8 @@ const INTERVAL_PRESETS: { label: string; seconds: number }[] = [
   { label: "1h", seconds: 3600 }
 ];
 
+const MIN_INTERVAL_SECONDS = 30;
+
 export function ScheduleEditPopover({
   monitor,
   onSaved,
@@ -29,36 +32,48 @@ export function ScheduleEditPopover({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [interval, setInterval] = React.useState<string>(String(monitor.interval_seconds));
+  const [intervalText, setIntervalText] = React.useState<string>(() =>
+    formatDuration(monitor.interval_seconds)
+  );
+  const [intervalSeconds, setIntervalSeconds] = React.useState<number>(monitor.interval_seconds);
   const [jitter, setJitter] = React.useState<number>(monitor.jitter_percent);
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
-    setInterval(String(monitor.interval_seconds));
+    setIntervalText(formatDuration(monitor.interval_seconds));
+    setIntervalSeconds(monitor.interval_seconds);
     setJitter(monitor.jitter_percent);
   }, [open, monitor.interval_seconds, monitor.jitter_percent]);
 
-  const intervalParsed = parseInterval(interval);
-  const dirty =
-    intervalParsed.kind === "ok"
-      ? intervalParsed.value !== monitor.interval_seconds || jitter !== monitor.jitter_percent
-      : false;
-  const jitterWindow =
-    intervalParsed.kind === "ok"
-      ? Math.round((intervalParsed.value * jitter) / 100)
-      : Math.round((monitor.interval_seconds * monitor.jitter_percent) / 100);
+  const parsedFromText = parseDuration(intervalText);
+  const textIsValid = parsedFromText != null && parsedFromText >= MIN_INTERVAL_SECONDS;
+  const dirty = intervalSeconds !== monitor.interval_seconds || jitter !== monitor.jitter_percent;
+  const jitterWindow = Math.round((intervalSeconds * jitter) / 100);
+
+  function commitIntervalText(text: string) {
+    const parsed = parseDuration(text);
+    if (parsed != null && parsed >= MIN_INTERVAL_SECONDS) {
+      setIntervalSeconds(parsed);
+      setIntervalText(formatDuration(parsed));
+    } else {
+      // Roll back display to whatever value we last accepted.
+      setIntervalText(formatDuration(intervalSeconds));
+    }
+  }
+
+  function applyPreset(seconds: number) {
+    setIntervalSeconds(seconds);
+    setIntervalText(formatDuration(seconds));
+  }
 
   async function save() {
-    if (intervalParsed.kind !== "ok") {
-      toast.error(intervalParsed.message);
-      return;
-    }
+    if (!dirty) return;
     setSaving(true);
     try {
       const updated = await api.updateMonitor(monitor.id, {
         ...monitor,
-        interval_seconds: intervalParsed.value,
+        interval_seconds: intervalSeconds,
         jitter_percent: jitter,
         check_mode: "browser"
       });
@@ -104,30 +119,32 @@ export function ScheduleEditPopover({
             >
               Check interval
             </label>
-            <div className="flex items-center gap-2">
-              <Input
-                id={`interval-${monitor.id}`}
-                type="number"
-                inputMode="numeric"
-                min={30}
-                step={1}
-                value={interval}
-                onChange={(event) => setInterval(event.target.value)}
-                disabled={saving}
-                className="h-8 max-w-28"
-                aria-invalid={intervalParsed.kind !== "ok"}
-              />
-              <span className="text-xs text-muted-foreground">seconds</span>
-            </div>
+            <Input
+              id={`interval-${monitor.id}`}
+              type="text"
+              inputMode="text"
+              value={intervalText}
+              placeholder="5m"
+              onChange={(event) => setIntervalText(event.target.value)}
+              onBlur={(event) => commitIntervalText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  commitIntervalText(event.currentTarget.value);
+                }
+              }}
+              disabled={saving}
+              aria-invalid={!textIsValid}
+              className="h-8"
+            />
             <div className="flex flex-wrap gap-1">
               {INTERVAL_PRESETS.map((preset) => {
-                const active =
-                  intervalParsed.kind === "ok" && intervalParsed.value === preset.seconds;
+                const active = intervalSeconds === preset.seconds;
                 return (
                   <button
                     key={preset.seconds}
                     type="button"
-                    onClick={() => setInterval(String(preset.seconds))}
+                    onClick={() => applyPreset(preset.seconds)}
                     disabled={saving}
                     aria-pressed={active}
                     className={cn(
@@ -142,7 +159,11 @@ export function ScheduleEditPopover({
                 );
               })}
             </div>
-            <p className="text-[11px] text-muted-foreground">Minimum 30 seconds.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Type a duration like <span className="font-mono">30s</span>,{" "}
+              <span className="font-mono">5m</span>, or <span className="font-mono">1h30m</span>. A
+              bare number is read as minutes. Minimum 30 seconds.
+            </p>
           </div>
 
           <div className="space-y-1.5 border-t pt-3">
@@ -182,19 +203,6 @@ export function ScheduleEditPopover({
       </PopoverContent>
     </Popover>
   );
-}
-
-type IntervalParse = { kind: "ok"; value: number } | { kind: "error"; message: string };
-
-function parseInterval(value: string): IntervalParse {
-  const trimmed = value.trim();
-  if (!trimmed) return { kind: "error", message: "Interval is required" };
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
-    return { kind: "error", message: "Interval must be a whole number of seconds" };
-  }
-  if (parsed < 30) return { kind: "error", message: "Interval must be at least 30 seconds" };
-  return { kind: "ok", value: parsed };
 }
 
 function formatSeconds(total: number): string {
