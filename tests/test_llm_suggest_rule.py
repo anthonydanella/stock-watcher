@@ -82,7 +82,7 @@ def _queue_llm(
         state["calls"] += 1
         return json.dumps(payloads[idx])
 
-    monkeypatch.setattr(llm, "_chat_completion_messages", fake)
+    monkeypatch.setattr(llm, "chat_completion", fake)
     return state
 
 

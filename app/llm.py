@@ -24,10 +24,9 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-import httpx
-from bs4 import BeautifulSoup
-
 from app.config import Settings
+from app.llm_client import LLMError, chat_completion, ensure_configured, resolve_base_url
+from app.llm_html import prepare_html_for_llm
 from app.models import AppSettings
 from app.quantity import parse_quantity
 from app.rules import (
@@ -35,10 +34,6 @@ from app.rules import (
     normalize_for_match,
     selector_encodes_stock_state,
 )
-
-
-class LLMError(Exception):
-    """Raised when the LLM call cannot be completed or returns an unusable response."""
 
 
 @dataclass(frozen=True)
@@ -53,11 +48,6 @@ class RuleSuggestion:
     explanation: str
     raw: str
 
-
-# Fallback cap when no per-request limit is supplied. Production callers pass
-# settings.llm_html_char_limit explicitly so this is mostly relevant for tests
-# and ad-hoc imports of prepare_html_for_llm.
-HTML_LIMIT = 200_000
 
 # Python's `re` accepts a leading inline-flag prefix like `(?i)` / `(?im)`, but it
 # rejects the same construct mid-pattern ("global flags not at the start of the
@@ -158,8 +148,8 @@ async def suggest_rule(
     against every "coverable" line of it (a line carrying a digit or a recognizable
     out-of-stock phrase), guaranteeing the pattern handles both states.
     """
-    _ensure_configured(settings, app_settings)
-    base_url = _base_url(app_settings)
+    ensure_configured(settings, app_settings)
+    base_url = resolve_base_url(app_settings)
 
     cleaned_html = prepare_html_for_llm(html_content, limit=settings.llm_html_char_limit)
     if not cleaned_html:
@@ -197,7 +187,7 @@ async def suggest_rule(
     last_suggestion: RuleSuggestion | None = None
     last_problem = ""
     for attempt in range(2):
-        raw = await _chat_completion_messages(settings, app_settings, base_url, messages)
+        raw = await chat_completion(settings, app_settings, base_url, messages)
         payload = _parse_json_payload(raw)
         suggestion = _build_rule_suggestion(payload, requested_mode, raw)
         problem = _verify_rule_suggestion(suggestion, html_content, samples)
@@ -309,138 +299,6 @@ def _verify_rule_suggestion(
     return ""
 
 
-# ---------- helpers ----------
-
-
-def prepare_html_for_llm(content: str, limit: int = HTML_LIMIT) -> str:
-    """Strip noisy nodes from HTML and truncate so it fits in an LLM prompt.
-
-    Scripts are removed EXCEPT for `<script type="application/ld+json">` blocks,
-    which carry schema.org structured data (often the cleanest signal for stock
-    availability on product pages).
-    """
-    if not content:
-        return ""
-    from bs4 import Comment
-
-    try:
-        soup = BeautifulSoup(content, "html.parser")
-    except Exception:
-        return _truncate(content, limit)
-    for tag in soup.find_all("script"):
-        type_attr = tag.get("type")
-        type_str = type_attr if isinstance(type_attr, str) else ""
-        if type_str.strip().lower() != "application/ld+json":
-            tag.decompose()
-    for tag in soup(["style", "noscript", "svg", "iframe", "template", "link", "meta", "path"]):
-        tag.decompose()
-    for comment in soup.find_all(string=lambda value: isinstance(value, Comment)):
-        comment.extract()
-    serialized = str(soup)
-    serialized = re.sub(r"\s+", " ", serialized).strip()
-    return _truncate(serialized, limit)
-
-
-def _truncate(value: str, limit: int) -> str:
-    if len(value) <= limit:
-        return value
-    return value[:limit] + "..."
-
-
-def _ensure_configured(settings: Settings, app_settings: AppSettings) -> None:
-    if not settings.llm_api_key:
-        raise LLMError(
-            "LLM_API_KEY is not set. Add it to the deployment environment to enable AI suggestions."
-        )
-    if not app_settings.llm_model.strip():
-        raise LLMError("LLM model is not configured. Set a model ID in Settings.")
-
-
-def _base_url(app_settings: AppSettings) -> str:
-    base_url = (app_settings.llm_base_url or "https://api.openai.com/v1").strip().rstrip("/")
-    if not base_url:
-        raise LLMError("LLM base URL is not configured.")
-    return base_url
-
-
-async def _chat_completion_messages(
-    settings: Settings,
-    app_settings: AppSettings,
-    base_url: str,
-    messages: list[dict[str, str]],
-) -> str:
-    body: dict[str, object] = {
-        "model": app_settings.llm_model.strip(),
-        "messages": messages,
-    }
-    extras = _parse_extra_params(app_settings.llm_extra_params)
-    body.update(extras)
-
-    headers = {
-        "Authorization": f"Bearer {settings.llm_api_key}",
-        "Content-Type": "application/json",
-    }
-    url = f"{base_url}/chat/completions"
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(url, json=body, headers=headers)
-    except httpx.HTTPError as exc:
-        raise LLMError(f"LLM request failed: {exc}") from exc
-
-    if response.status_code >= 400:
-        detail = _excerpt(response.text)
-        raise LLMError(f"LLM endpoint returned HTTP {response.status_code}: {detail}")
-
-    try:
-        data = response.json()
-    except ValueError as exc:
-        raise LLMError("LLM endpoint returned non-JSON response") from exc
-
-    content = _extract_message_content(data)
-    if not content:
-        raise LLMError("LLM response did not include any message content")
-    return content
-
-
-def _parse_extra_params(raw: str) -> dict[str, object]:
-    text = (raw or "").strip()
-    if not text:
-        return {}
-    try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise LLMError(f"LLM extra params is not valid JSON: {exc}") from exc
-    if not isinstance(parsed, dict):
-        raise LLMError("LLM extra params must be a JSON object")
-    return parsed
-
-
-def _extract_message_content(data: object) -> str:
-    if not isinstance(data, dict):
-        return ""
-    choices = data.get("choices")
-    if not isinstance(choices, list) or not choices:
-        return ""
-    first = choices[0]
-    if not isinstance(first, dict):
-        return ""
-    message = first.get("message")
-    if not isinstance(message, dict):
-        return ""
-    content = message.get("content")
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts: list[str] = []
-        for block in content:
-            if isinstance(block, dict):
-                text = block.get("text")
-                if isinstance(text, str):
-                    parts.append(text)
-        return "\n".join(parts)
-    return ""
-
-
 _JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
 
 
@@ -537,8 +395,3 @@ def _build_rule_suggestion(
         explanation=explanation,
         raw=raw,
     )
-
-
-def _excerpt(value: str, limit: int = 200) -> str:
-    compact = " ".join((value or "").split())
-    return compact if len(compact) <= limit else compact[: limit - 3] + "..."
