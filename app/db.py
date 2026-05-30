@@ -119,6 +119,7 @@ def init_db(conn: sqlite3.Connection) -> None:
             "notify_on_stock_change": "INTEGER NOT NULL DEFAULT 1",
             "notify_on_error": "INTEGER NOT NULL DEFAULT 1",
             "notify_on_challenge": "INTEGER NOT NULL DEFAULT 1",
+            "tags": "TEXT NOT NULL DEFAULT '[]'",
         },
     )
     _ensure_columns(
