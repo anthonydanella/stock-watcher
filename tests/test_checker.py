@@ -49,7 +49,7 @@ async def test_check_monitor_records_in_stock_transition(tmp_path: Path) -> None
 
     updated = repository.get_monitor(monitor_id)
     assert updated.status == STATUS_IN_STOCK
-    assert ntfy.messages[0][0] == "Stock checker active"
+    assert ntfy.messages[0][0] == "Stock watcher active"
 
 
 @pytest.mark.asyncio
@@ -101,7 +101,7 @@ async def test_check_monitor_sends_initial_out_of_stock_notification(tmp_path: P
     assert "Expected text to contain" in attempts[0].reason
     assert ntfy.messages == [
         (
-            "Stock checker active",
+            "Stock watcher active",
             "Console: initial check completed, current status is out of stock.",
         )
     ]
@@ -175,7 +175,7 @@ async def test_check_monitor_detects_challenge_and_notifies(tmp_path: Path) -> N
     assert updated.status == STATUS_CHALLENGE
     assert updated.cooldown_until is not None
     assert updated.next_check_at == updated.cooldown_until
-    assert ntfy.messages[0][0] == "Stock checker challenge"
+    assert ntfy.messages[0][0] == "Stock watcher challenge"
 
 
 @pytest.mark.asyncio
