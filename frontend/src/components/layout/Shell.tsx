@@ -11,8 +11,11 @@ import { navLinkClass } from "./navigation";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Shell() {
+  // overflow-x-clip (not -hidden) prevents horizontal scroll without forcing
+  // overflow-y to auto, which would establish a scroll container and break
+  // position: sticky for the nav and page headers.
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-clip">
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
         <div className="mx-auto flex min-h-14 w-full max-w-450 flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-2 lg:flex-nowrap lg:gap-6 lg:py-0">
           <div className="flex min-w-0 items-center gap-2">

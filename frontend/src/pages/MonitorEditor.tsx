@@ -3,8 +3,9 @@ import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "../api";
-import { DangerZone } from "../components/monitors/editor/EditorActions";
+import { DangerZone, EditorActions } from "../components/monitors/editor/EditorActions";
 import { StatusPill } from "../components/monitors/editor/EditorChrome";
+import { EditorValidation } from "../components/monitors/editor/EditorValidation";
 import {
   hostFromUrl,
   matchModesForRule,
@@ -14,7 +15,6 @@ import {
   validateMonitor
 } from "../components/monitors/editor/helpers";
 import { MonitorEditorForm } from "../components/monitors/editor/MonitorEditorForm";
-import { MonitorEditorSidebar } from "../components/monitors/editor/MonitorEditorSidebar";
 import { MonitorDashboardTrends } from "../components/monitors/MonitorDashboardTrends";
 import { MonitorHistory } from "../components/monitors/MonitorHistory";
 import { MonitorState } from "../components/monitors/MonitorState";
@@ -42,11 +42,9 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
   const [busyAction, setBusyAction] = React.useState<
     "save" | "run" | "delete" | "duplicate" | null
   >(null);
-  const [confirmDelete, setConfirmDelete] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
-    setConfirmDelete(false);
     if (!id) {
       setMonitor(blankMonitor);
       setHistory([]);
@@ -99,7 +97,6 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
 
   function patchMany(values: Partial<Monitor>) {
     setMonitor((current) => ({ ...current, ...values }));
-    setConfirmDelete(false);
   }
 
   function applyRuleType(ruleType: Monitor["rule_type"]) {
@@ -133,12 +130,11 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
     if (inferred) patch("name", inferred);
   }
 
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    if (busyAction) return;
+  async function persist(): Promise<Monitor | null> {
+    if (busyAction) return null;
     if (blockingIssues.length) {
       toast.error(blockingIssues[0].message);
-      return;
+      return null;
     }
     setBusyAction("save");
     try {
@@ -149,25 +145,26 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
       setMonitor(saved);
       setInitialSnapshot(serializeMonitor(saved));
       toast.success("Monitor saved");
-      if (isNew) navigate(`/monitors/${saved.id}`, { replace: true });
+      return saved;
     } catch (exc) {
       toast.error(errorMessage(exc, "Save failed"));
+      return null;
     } finally {
       setBusyAction(null);
     }
   }
 
-  async function runNow() {
-    if (!id) return;
-    if (busyAction) return;
-    if (dirty) {
-      toast.warning("Save changes before running this monitor.");
-      return;
-    }
+  async function save(event?: React.FormEvent) {
+    event?.preventDefault();
+    const saved = await persist();
+    if (saved && isNew) navigate(`/monitors/${saved.id}/edit`, { replace: true });
+  }
+
+  async function runById(targetId: number | string) {
     setBusyAction("run");
     try {
-      const updated = await api.runMonitor(id);
-      const nextHistory = await api.monitorHistory(id);
+      const updated = await api.runMonitor(targetId);
+      const nextHistory = await api.monitorHistory(targetId);
       setMonitor(updated);
       setHistory(nextHistory);
       setInitialSnapshot(serializeMonitor(updated));
@@ -179,9 +176,22 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
     }
   }
 
+  async function runNow() {
+    if (!id || busyAction) return;
+    if (dirty) {
+      toast.warning("Save changes before running this monitor.");
+      return;
+    }
+    await runById(id);
+  }
+
+  async function saveAndRun() {
+    const saved = await persist();
+    if (saved) await runById(saved.id);
+  }
+
   async function duplicate() {
-    if (!fullMonitor) return;
-    if (busyAction) return;
+    if (!fullMonitor || busyAction) return;
     setBusyAction("duplicate");
     try {
       const created = await api.createMonitor(monitorCopyPayload(fullMonitor));
@@ -195,20 +205,13 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
   }
 
   async function remove() {
-    if (!id) return;
-    if (busyAction) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      toast.warning("Click Delete monitor again to permanently remove this monitor.");
-      return;
-    }
+    if (!id || busyAction) return;
     setBusyAction("delete");
     try {
       await api.deleteMonitor(id);
       navigate("/monitors");
     } catch (exc) {
       toast.error(errorMessage(exc, "Delete failed"));
-    } finally {
       setBusyAction(null);
     }
   }
@@ -216,8 +219,6 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
   const editorForm = (
     <MonitorEditorForm
       monitor={monitor}
-      isNew={isNew}
-      busyAction={busyAction}
       formRef={formRef}
       onSubmit={save}
       onPatch={patch}
@@ -229,8 +230,8 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
+    <div className={cn("space-y-6", editing && "pb-24")}>
+      <div className="sticky top-14 z-10 -mx-3 space-y-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:-mx-4 sm:px-4">
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/monitors"))}
@@ -317,36 +318,26 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
 
       {!loading && !loadError ? (
         isNew ? (
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="space-y-5">
+            <EditorValidation validation={validation} />
             {editorForm}
-            <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-              <MonitorEditorSidebar validation={validation} />
-            </aside>
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex border-b border-border" role="tablist" aria-label="Monitor views">
+            <nav className="flex border-b border-border" aria-label="Monitor views">
               <RouteTab to={`/monitors/${id}`} active={!editing}>
                 Overview
               </RouteTab>
               <RouteTab to={`/monitors/${id}/edit`} active={editing}>
                 Settings
               </RouteTab>
-            </div>
+            </nav>
 
             {editing ? (
               <div className="space-y-6 animate-in fade-in duration-200">
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                  {editorForm}
-                  <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-                    <MonitorEditorSidebar validation={validation} />
-                  </aside>
-                </div>
-                <DangerZone
-                  busyAction={busyAction}
-                  confirmDelete={confirmDelete}
-                  onRemove={remove}
-                />
+                <EditorValidation validation={validation} />
+                {editorForm}
+                <DangerZone busyAction={busyAction} onRemove={remove} />
               </div>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-200">
@@ -362,6 +353,17 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
             )}
           </div>
         )
+      ) : null}
+
+      {editing && !loading && !loadError ? (
+        <EditorActions
+          isNew={isNew}
+          busyAction={busyAction}
+          dirty={dirty}
+          blockingCount={blockingIssues.length}
+          onSave={save}
+          onSaveAndRun={saveAndRun}
+        />
       ) : null}
     </div>
   );
