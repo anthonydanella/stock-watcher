@@ -2,7 +2,6 @@ import React from "react";
 
 import type { Monitor } from "../../../types";
 import { userAgentPresets } from "./constants";
-import { EditorActions } from "./EditorActions";
 import { matchModesForRule } from "./helpers";
 import { NotificationsSection } from "./NotificationsSection";
 import { RuleLab } from "./RuleLab";
@@ -13,8 +12,6 @@ import type { MonitorPatch } from "./types";
 
 export function MonitorEditorForm({
   monitor,
-  isNew,
-  busyAction,
   formRef,
   onSubmit,
   onPatch,
@@ -24,8 +21,6 @@ export function MonitorEditorForm({
   onInferName
 }: {
   monitor: Partial<Monitor>;
-  isNew: boolean;
-  busyAction: "save" | "run" | "delete" | "duplicate" | null;
   formRef: React.RefObject<HTMLFormElement | null>;
   onSubmit: (event: React.FormEvent) => void;
   onPatch: MonitorPatch;
@@ -59,14 +54,15 @@ export function MonitorEditorForm({
         onApplyMatchMode={onApplyMatchMode}
       />
       <RuleLab monitor={monitor} />
-      <TimingSection
-        monitor={monitor}
-        selectedUserAgent={selectedUserAgent}
-        onPatch={onPatch}
-        onPatchMany={onPatchMany}
-      />
-      <NotificationsSection monitor={monitor} onPatch={onPatch} />
-      <EditorActions isNew={isNew} busyAction={busyAction} />
+      <div className="grid gap-5 xl:grid-cols-2">
+        <TimingSection
+          monitor={monitor}
+          selectedUserAgent={selectedUserAgent}
+          onPatch={onPatch}
+          onPatchMany={onPatchMany}
+        />
+        <NotificationsSection monitor={monitor} onPatch={onPatch} />
+      </div>
     </form>
   );
 }
