@@ -1,10 +1,11 @@
-import { eventLabel, formatDate } from "../../lib/format";
+import { eventBadgeClass, eventLabel, formatDate } from "../../lib/format";
+import { cn } from "../../lib/utils";
 import type { EventRow } from "../../types";
 import { EmptyState } from "../shared/EmptyState";
 import { PanelCard } from "../shared/PanelCard";
 import { Badge } from "../ui/badge";
 import { CardContent } from "../ui/card";
-import { Table, TableCell, TableHead } from "../ui/table";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "../ui/table";
 
 export function EventsTable({ events }: { events: EventRow[] }) {
   return (
@@ -18,7 +19,9 @@ export function EventsTable({ events }: { events: EventRow[] }) {
                   <p className="break-words font-medium">{event.monitor_name ?? "System"}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(event.created_at)}</p>
                 </div>
-                <Badge className="shrink-0 rounded-full">{eventLabel(event.event_type)}</Badge>
+                <Badge className={cn("shrink-0 border", eventBadgeClass(event.event_type))}>
+                  {eventLabel(event.event_type)}
+                </Badge>
               </div>
               <p className="break-words text-sm">{event.message}</p>
             </CardContent>
@@ -26,42 +29,44 @@ export function EventsTable({ events }: { events: EventRow[] }) {
         ))}
         {!events.length ? <EmptyState message="No events recorded." /> : null}
       </div>
-      <PanelCard className="hidden min-w-0 overflow-hidden lg:block">
-        <CardContent>
+      <PanelCard className="hidden min-w-0 overflow-hidden py-0 lg:block">
+        <CardContent className="p-0">
           <Table>
-            <thead>
+            <thead className="border-b bg-muted/30">
               <tr>
-                <TableHead>Time</TableHead>
+                <TableHead className="pl-4">Time</TableHead>
                 <TableHead>Monitor</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Message</TableHead>
+                <TableHead className="pr-4">Message</TableHead>
               </tr>
             </thead>
-            <tbody>
+            <TableBody>
               {events.map((event) => (
-                <tr key={event.id}>
-                  <TableCell className="whitespace-nowrap">
+                <TableRow key={event.id}>
+                  <TableCell className="pl-4 whitespace-nowrap text-muted-foreground">
                     {formatDate(event.created_at)}
                   </TableCell>
-                  <TableCell className="max-w-xs break-words">
+                  <TableCell className="max-w-xs break-words font-medium">
                     {event.monitor_name ?? "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge className="rounded-full">{eventLabel(event.event_type)}</Badge>
+                    <Badge className={cn("border", eventBadgeClass(event.event_type))}>
+                      {eventLabel(event.event_type)}
+                    </Badge>
                   </TableCell>
-                  <TableCell className="max-w-2xl break-words [overflow-wrap:anywhere]">
+                  <TableCell className="max-w-2xl pr-4 break-words [overflow-wrap:anywhere]">
                     {event.message}
                   </TableCell>
-                </tr>
+                </TableRow>
               ))}
               {!events.length ? (
-                <tr>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                <TableRow>
+                  <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
                     No events recorded.
                   </TableCell>
-                </tr>
+                </TableRow>
               ) : null}
-            </tbody>
+            </TableBody>
           </Table>
         </CardContent>
       </PanelCard>

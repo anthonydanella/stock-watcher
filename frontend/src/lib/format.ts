@@ -126,6 +126,27 @@ export function statusBadgeClass(status: string | null | undefined) {
   return "rounded-full";
 }
 
+export function eventBadgeClass(eventType: string | null | undefined) {
+  switch (eventType) {
+    case "recovery":
+    case "alert_triggered":
+      return "rounded-full border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200";
+    case "challenge":
+      return "rounded-full border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200";
+    case "error":
+    case "screenshot_error":
+      return "rounded-full border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200";
+    case "notification_error":
+      return "rounded-full border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200";
+    case "status_change":
+      return "rounded-full border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/40 dark:text-sky-200";
+    default:
+      // manual + anything unrecognized: quiet, neutral pill so routine entries
+      // recede and the colored ones above stand out when scanning.
+      return "rounded-full border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700/50 dark:bg-zinc-800/50 dark:text-zinc-300";
+  }
+}
+
 export const warningAlertClass =
   "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200";
 export const successAlertClass =
