@@ -10,8 +10,7 @@ stock — all through a clean interface built for power users.
 
 [Quick start](#quick-start) ·
 [Features](#features) ·
-[Configuration](#configuration) ·
-[Architecture](#architecture)
+[Configuration](#configuration)
 
 </div>
 
@@ -95,32 +94,13 @@ what you need.
 
 Booleans accept `1/true/yes/on`.
 
-## Architecture
-
-```
-app/                          FastAPI backend
-  main.py                     HTTP routes and request/response shaping
-  checker.py                  stock fetching and HTML/JSON parsing
-  rules.py                    match-rule evaluation
-  challenges.py               challenge-page detection
-  scheduler.py                timed monitor execution loop
-  notification_rules.py       cross-monitor alert evaluation
-  ntfy.py                     ntfy notification dispatch
-  llm.py                      AI rule suggestion helper
-  repository.py / db.py /
-    models.py                 SQLite persistence and schema
-  config.py                   env-var-driven Settings
-frontend/                     React + TypeScript UI (Tailwind, shadcn/ui)
-tests/                        pytest backend tests
-```
-
 ## Testing
 
 ```bash
 uv run pytest                  # backend tests
 uv run ruff check app tests    # backend lint
 cd frontend && npm run build   # frontend type-check + build
-cd frontend && npm run lint    # biome lint
+npm run lint                   # biome lint (run from the repo root)
 ```
 
 ## Contributing
