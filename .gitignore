@@ -6,7 +6,7 @@ data/
 node_modules/
 frontend/dist/
 
-*.DS_Store
+.DS_Store
 
 # Agent / editor tooling (not part of the app)
 .agents/
