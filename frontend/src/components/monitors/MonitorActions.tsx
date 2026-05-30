@@ -14,7 +14,8 @@ export function MonitorActions({
   busyActions,
   onAction,
   onDuplicate,
-  compact = false
+  compact = false,
+  stretch = false
 }: {
   monitor: Monitor;
   busyActions: Record<number, MonitorActionKind>;
@@ -25,6 +26,7 @@ export function MonitorActions({
   ) => Promise<void>;
   onDuplicate?: (monitor: Monitor) => Promise<void> | void;
   compact?: boolean;
+  stretch?: boolean;
 }) {
   const activeAction = busyActions[monitor.id];
   const busy = Boolean(activeAction);
@@ -67,9 +69,11 @@ export function MonitorActions({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={cn("flex gap-2", stretch ? "w-full" : "flex-wrap")}>
       <Button
         variant="outline"
+        size={stretch ? "lg" : "default"}
+        className={cn(stretch && "flex-1")}
         disabled={busy}
         onClick={() => onAction(monitor.id, "toggle", () => api.toggleMonitor(monitor.id))}
       >
@@ -77,6 +81,8 @@ export function MonitorActions({
       </Button>
       <Button
         variant="secondary"
+        size={stretch ? "lg" : "default"}
+        className={cn(stretch && "flex-1")}
         disabled={busy}
         aria-busy={running}
         onClick={() => onAction(monitor.id, "run", () => api.runMonitor(monitor.id))}
@@ -91,7 +97,10 @@ export function MonitorActions({
             aria-label={`Duplicate ${monitor.name}`}
             aria-busy={duplicating}
             onClick={() => void onDuplicate(monitor)}
-            className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "icon" }),
+              stretch && "size-10 shrink-0"
+            )}
           >
             {duplicating ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />

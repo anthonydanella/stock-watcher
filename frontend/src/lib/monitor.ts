@@ -26,6 +26,12 @@ export function isFullMonitor(monitor: Partial<Monitor>): monitor is Monitor {
   return typeof monitor.id === "number" && typeof monitor.status === "string";
 }
 
+export function isCoolingDown(monitor: Monitor): boolean {
+  if (!monitor.cooldown_until) return false;
+  const t = new Date(monitor.cooldown_until).getTime();
+  return !Number.isNaN(t) && t > Date.now();
+}
+
 export function monitorCopyPayload(monitor: Monitor): Partial<Monitor> {
   return {
     name: `${monitor.name} (copy)`,

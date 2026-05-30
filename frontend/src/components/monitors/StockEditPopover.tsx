@@ -1,4 +1,4 @@
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Pencil } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
@@ -58,11 +58,12 @@ export function StockEditPopover({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={`Stock details for ${monitor.name}`}
-        className="-mx-1 flex w-full items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="-mx-1 flex min-h-11 w-full items-center gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-muted/50 active:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:min-h-0 lg:py-0.5"
       >
         {children}
+        <Pencil className="h-3.5 w-3.5 shrink-0 text-muted-foreground lg:hidden" aria-hidden="true" />
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" className="w-80">
+      <PopoverContent side="bottom" align="start" className="w-[min(20rem,calc(100vw-2rem))]">
         <div className="space-y-3">
           <div className="flex items-baseline justify-between gap-3">
             <div>

@@ -2,22 +2,24 @@ import { Link } from "react-router-dom";
 
 import {
   failureTypeLabel,
-  formatCadence,
-  formatDate,
-  formatScheduleState,
   statusBadgeClass,
   statusLabel,
+  timeAgo,
   warningAlertClass
 } from "../../lib/format";
+import { isCoolingDown } from "../../lib/monitor";
 import { cn } from "../../lib/utils";
 import type { Monitor } from "../../types";
-import { Info } from "../shared/Info";
 import { Alert } from "../ui/alert";
 import { Badge } from "../ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader } from "../ui/card";
 import { type MonitorActionKind, MonitorActions } from "./MonitorActions";
 import { MonitorQuantitySparkline } from "./MonitorQuantitySparkline";
 import { MonitorScreenshot } from "./MonitorScreenshot";
+import { NextCheckSummary } from "./NextCheckSummary";
+import { NotificationsCell } from "./NotificationsCell";
+import { ScheduleEditPopover } from "./ScheduleEditPopover";
+import { StockEditPopover } from "./StockEditPopover";
 
 function getStatusTheme(status: string | null | undefined, enabled: boolean) {
   if (!enabled) {
@@ -54,7 +56,8 @@ export function MonitorListCard({
   monitor,
   busyActions,
   onAction,
-  onDuplicate
+  onDuplicate,
+  onPatch
 }: {
   monitor: Monitor;
   busyActions: Record<number, MonitorActionKind>;
@@ -64,9 +67,13 @@ export function MonitorListCard({
     fn: () => Promise<Monitor>
   ) => Promise<void>;
   onDuplicate?: (monitor: Monitor) => Promise<void> | void;
+  onPatch: (updated: Monitor) => void;
 }) {
   const theme = getStatusTheme(monitor.status, monitor.enabled);
   const isQuantity = monitor.stock_mode === "quantity";
+  const cooling = isCoolingDown(monitor);
+  const trend = monitor.recent_quantities ?? [];
+  const hasTrend = trend.length > 1;
   return (
     <Card
       className={cn(
@@ -76,62 +83,78 @@ export function MonitorListCard({
       )}
     >
       <CardHeader>
-        <Link to={`/monitors/${monitor.id}`}>
-          <CardTitle>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                {monitor.name}
-                <p className="truncate text-xs text-muted-foreground">{monitor.url}</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {isQuantity && monitor.last_quantity != null ? (
-                  <span className="inline-flex items-baseline gap-1 font-mono text-base font-semibold tabular-nums text-foreground">
-                    {monitor.last_quantity.toLocaleString()}
-                    <span className="text-xs font-normal text-muted-foreground">in stock</span>
-                  </span>
-                ) : null}
-                <Badge className={cn(statusBadgeClass(monitor.status), "shrink-0")}>
-                  {statusLabel(monitor.status)}
-                </Badge>
-              </div>
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <Link to={`/monitors/${monitor.id}`} className="block min-w-0">
+            <div className="truncate font-heading text-base font-medium leading-normal hover:underline">
+              {monitor.name}
             </div>
-          </CardTitle>
-        </Link>
+            <p className="truncate text-xs text-muted-foreground">{monitor.url}</p>
+          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <Badge className={cn(statusBadgeClass(monitor.status), "shrink-0")}>
+              {statusLabel(monitor.status)}
+            </Badge>
+            {cooling ? (
+              <span className="text-xs leading-tight text-violet-700 dark:text-violet-300">
+                Cooling {timeAgo(monitor.cooldown_until)}
+              </span>
+            ) : null}
+          </div>
+        </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 p-4">
-        {isQuantity && monitor.recent_quantities && monitor.recent_quantities.length > 1 ? (
-          <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2">
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                Quantity trend
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Last {monitor.recent_quantities.length} checks
-                {monitor.low_stock_threshold != null
-                  ? ` · low ≤ ${monitor.low_stock_threshold}`
-                  : ""}
-              </p>
-            </div>
-            <MonitorQuantitySparkline
-              values={monitor.recent_quantities}
-              threshold={monitor.low_stock_threshold}
-            />
-          </div>
+      <CardContent className="space-y-3">
+        {isQuantity ? (
+          <StockEditPopover monitor={monitor} onSaved={onPatch}>
+            <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+              <span className="min-w-0 text-left">
+                <span className="block text-xs font-medium text-muted-foreground">In stock</span>
+                <span className="block font-mono text-lg font-semibold tabular-nums text-foreground">
+                  {monitor.last_quantity != null ? monitor.last_quantity.toLocaleString() : "—"}
+                  {monitor.low_stock_threshold != null ? (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      low ≤ {monitor.low_stock_threshold}
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+              {hasTrend ? (
+                <MonitorQuantitySparkline values={trend} threshold={monitor.low_stock_threshold} />
+              ) : null}
+            </span>
+          </StockEditPopover>
         ) : null}
-        <div className="grid gap-3 text-sm sm:grid-cols-3">
-          <Info
-            label="Cadence"
-            value={formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
-          />
-          <Info label="Last check" value={formatDate(monitor.last_checked_at)} />
-          <Info label="Next check" value={formatScheduleState(monitor)} />
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-medium text-muted-foreground">Notifications</span>
+          <NotificationsCell monitor={monitor} onSaved={onPatch} />
         </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-medium text-muted-foreground">Last check</span>
+          <span className="text-right text-sm leading-tight">
+            {monitor.last_checked_at ? timeAgo(monitor.last_checked_at) || "Just now" : "Never"}
+          </span>
+        </div>
+
+        <ScheduleEditPopover monitor={monitor} onSaved={onPatch}>
+          <span className="flex w-full items-center justify-between gap-3">
+            <span className="text-xs font-medium text-muted-foreground">Next check</span>
+            <span className="flex min-w-0 flex-col items-end text-right text-sm">
+              <NextCheckSummary monitor={monitor} cooling={cooling} />
+            </span>
+          </span>
+        </ScheduleEditPopover>
+
         <MonitorScreenshot monitor={monitor} />
         {monitor.last_error ? (
-          <Alert className={warningAlertClass}>
-            {monitor.last_error_type ? `${failureTypeLabel(monitor.last_error_type)}: ` : ""}
-            {monitor.last_error}
+          <Alert className={cn(warningAlertClass, "block")}>
+            <p className="line-clamp-3 min-w-0 break-words [overflow-wrap:anywhere]">
+              {monitor.last_error_type ? (
+                <span className="font-medium">{failureTypeLabel(monitor.last_error_type)}: </span>
+              ) : null}
+              {monitor.last_error}
+            </p>
           </Alert>
         ) : null}
         <MonitorActions
@@ -139,6 +162,7 @@ export function MonitorListCard({
           busyActions={busyActions}
           onAction={onAction}
           onDuplicate={onDuplicate}
+          stretch
         />
       </CardContent>
     </Card>
