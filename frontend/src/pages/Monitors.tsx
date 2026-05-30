@@ -16,8 +16,10 @@ import { api } from "../api";
 import { hostFromUrl } from "../components/monitors/editor/helpers";
 import { type MonitorActionKind, MonitorActions } from "../components/monitors/MonitorActions";
 import { MonitorListCard } from "../components/monitors/MonitorListCard";
-import { MonitorQuantitySparkline } from "../components/monitors/MonitorQuantitySparkline";
 import { MonitorScreenshot } from "../components/monitors/MonitorScreenshot";
+import { NotificationsCell } from "../components/monitors/NotificationsCell";
+import { ScheduleEditPopover } from "../components/monitors/ScheduleEditPopover";
+import { StockEditPopover } from "../components/monitors/StockEditPopover";
 import { EmptyState } from "../components/shared/EmptyState";
 import { LinkButton } from "../components/shared/LinkButton";
 import { PageHeader } from "../components/shared/PageHeader";
@@ -333,12 +335,13 @@ export function Monitors() {
                     />
                     <SortableHead
                       label="Stock"
-                      className="w-36"
+                      className="w-28"
                       sortKey="stock"
                       activeKey={sortKey}
                       direction={sortDir}
                       onClick={toggleSort}
                     />
+                    <TableHead className="w-20">Notif</TableHead>
                     <SortableHead
                       label="Last check"
                       className="w-32"
@@ -363,7 +366,7 @@ export function Monitors() {
                     <tbody key={host} className="not-first-of-type:border-t">
                       <tr className="bg-muted/40">
                         <TableCell
-                          colSpan={7}
+                          colSpan={8}
                           className="px-4 py-1.5 text-xs font-medium text-muted-foreground"
                         >
                           <div className="flex items-center gap-2">
@@ -382,6 +385,7 @@ export function Monitors() {
                           busyActions={busyActions}
                           onAction={action}
                           onDuplicate={duplicate}
+                          onPatch={patchMonitor}
                         />
                       ))}
                     </tbody>
@@ -395,6 +399,7 @@ export function Monitors() {
                         busyActions={busyActions}
                         onAction={action}
                         onDuplicate={duplicate}
+                        onPatch={patchMonitor}
                       />
                     ))}
                   </tbody>
@@ -402,7 +407,7 @@ export function Monitors() {
                 {!sorted.length ? (
                   <tbody>
                     <tr>
-                      <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                      <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                         {monitors.length === 0
                           ? "No monitors configured."
                           : "No monitors match the current filters."}
@@ -585,7 +590,8 @@ function MonitorRow({
   monitor,
   busyActions,
   onAction,
-  onDuplicate
+  onDuplicate,
+  onPatch
 }: {
   monitor: Monitor;
   busyActions: Record<number, MonitorActionKind>;
@@ -595,6 +601,7 @@ function MonitorRow({
     fn: () => Promise<Monitor>
   ) => Promise<void>;
   onDuplicate: (monitor: Monitor) => Promise<void>;
+  onPatch: (updated: Monitor) => void;
 }) {
   const cooling = isCoolingDown(monitor);
   const isQuantity = monitor.stock_mode === "quantity";
@@ -646,8 +653,11 @@ function MonitorRow({
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="w-36 py-2">
-        <StockCell monitor={monitor} isQuantity={isQuantity} />
+      <TableCell className="w-28 py-2">
+        <StockCell monitor={monitor} isQuantity={isQuantity} onPatch={onPatch} />
+      </TableCell>
+      <TableCell className="w-20 py-2">
+        <NotificationsCell monitor={monitor} onSaved={onPatch} />
       </TableCell>
       <TableCell className="w-32 py-2 text-sm">
         {monitor.last_checked_at ? (
@@ -662,10 +672,12 @@ function MonitorRow({
         )}
       </TableCell>
       <TableCell className="w-40 py-2 text-sm">
-        <div className="leading-tight">{formatScheduleState(monitor, true)}</div>
-        <div className="text-xs leading-tight text-muted-foreground">
-          {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
-        </div>
+        <ScheduleEditPopover monitor={monitor} onSaved={onPatch}>
+          <span className="leading-tight">{formatScheduleState(monitor, true)}</span>
+          <span className="text-xs leading-tight text-muted-foreground">
+            {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
+          </span>
+        </ScheduleEditPopover>
       </TableCell>
       <TableCell className="w-32 py-2 pr-4">
         <div className="flex justify-end">
@@ -682,13 +694,20 @@ function MonitorRow({
   );
 }
 
-function StockCell({ monitor, isQuantity }: { monitor: Monitor; isQuantity: boolean }) {
+function StockCell({
+  monitor,
+  isQuantity,
+  onPatch
+}: {
+  monitor: Monitor;
+  isQuantity: boolean;
+  onPatch: (updated: Monitor) => void;
+}) {
   if (!isQuantity) {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
-  const trend = monitor.recent_quantities ?? [];
   return (
-    <div className="flex items-center gap-2">
+    <StockEditPopover monitor={monitor} onSaved={onPatch}>
       <div className="min-w-0 leading-tight">
         <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
           {monitor.last_quantity != null ? monitor.last_quantity.toLocaleString() : "—"}
@@ -697,13 +716,6 @@ function StockCell({ monitor, isQuantity }: { monitor: Monitor; isQuantity: bool
           <div className="text-[11px] text-muted-foreground">≤ {monitor.low_stock_threshold}</div>
         ) : null}
       </div>
-      {trend.length > 1 ? (
-        <MonitorQuantitySparkline
-          values={trend}
-          threshold={monitor.low_stock_threshold}
-          className="ml-auto shrink-0"
-        />
-      ) : null}
-    </div>
+    </StockEditPopover>
   );
 }
