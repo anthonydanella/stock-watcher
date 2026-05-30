@@ -19,6 +19,7 @@ import { api } from "../api";
 import { AlertRuleEditor } from "../components/alerts/AlertRuleEditor";
 import { hostFromUrl } from "../components/monitors/editor/helpers";
 import { EmptyState } from "../components/shared/EmptyState";
+import { FilterMenu } from "../components/shared/FilterMenu";
 import { PageHeader } from "../components/shared/PageHeader";
 import { MonitorListSkeleton } from "../components/shared/Skeletons";
 import { Badge } from "../components/ui/badge";
@@ -32,7 +33,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "../components/ui/dialog";
-import { Input } from "../components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "../components/ui/input-group";
 import { Toggle } from "../components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import { errorMessage, formatDate, statusLabel, timeAgo } from "../lib/format";
@@ -274,67 +275,28 @@ export function AlertRules() {
         <EmptyState message='No alert rules yet. Create one to be notified when conditions like "two monitors are in stock" are met.' />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative min-w-0 grow sm:max-w-sm">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search rules"
-                aria-label="Search alert rules"
-                className="pl-8"
-              />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-full min-w-0 sm:w-72">
+              <InputGroup className="h-8">
+                <InputGroupInput
+                  aria-label="Search alert rules"
+                  placeholder="Search rules"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+                <InputGroupAddon align="inline-start">
+                  <Search className="text-muted-foreground" aria-hidden="true" />
+                </InputGroupAddon>
+              </InputGroup>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {RULE_FILTERS.map((option) => {
-                const active = filter === option.id;
-                const count = counts[option.id];
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setFilter(option.id)}
-                    aria-pressed={active}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      active
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
-                    )}
-                  >
-                    <span>{option.label}</span>
-                    <span
-                      className={cn(
-                        "rounded-full px-1.5 text-[10px] font-medium tabular-nums",
-                        active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <Toggle
-              variant="outline"
-              size="sm"
-              pressed={groupByHost}
-              onPressedChange={setGroupByHost}
-              aria-label="Group by host"
-              title="Group rules by the host they watch"
-            >
-              <Layers className="h-3.5 w-3.5" />
-              Group by host
-            </Toggle>
-            <div className="ml-auto flex items-center gap-3">
-              <span className="text-xs text-muted-foreground">
-                {visible.length === rules.length
-                  ? `${rules.length} ${rules.length === 1 ? "rule" : "rules"}`
-                  : `${visible.length} of ${rules.length} shown`}
-              </span>
+            <div className="flex items-center gap-2">
+              <FilterMenu
+                label="State"
+                options={RULE_FILTERS}
+                value={filter}
+                onChange={setFilter}
+                counts={counts}
+              />
               {hasFilters ? (
                 <Button
                   variant="ghost"
@@ -344,10 +306,28 @@ export function AlertRules() {
                     setFilter("all");
                   }}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X />
                   Clear
                 </Button>
               ) : null}
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                {visible.length === rules.length
+                  ? `${rules.length} ${rules.length === 1 ? "rule" : "rules"}`
+                  : `${visible.length} of ${rules.length}`}
+              </span>
+              <Toggle
+                variant="outline"
+                size="sm"
+                pressed={groupByHost}
+                onPressedChange={setGroupByHost}
+                aria-label="Group by host"
+                title="Group rules by the host they watch"
+              >
+                <Layers className="h-3.5 w-3.5" />
+                Group by host
+              </Toggle>
             </div>
           </div>
 

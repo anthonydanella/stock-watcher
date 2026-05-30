@@ -4,6 +4,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Layers,
+  List,
   Plus,
   Search,
   X
@@ -11,7 +12,7 @@ import {
 import React from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { api } from "../api";
 import { hostFromUrl } from "../components/monitors/editor/helpers";
 import { type MonitorActionKind, MonitorActions } from "../components/monitors/MonitorActions";
@@ -21,15 +22,14 @@ import { NotificationsCell } from "../components/monitors/NotificationsCell";
 import { ScheduleEditPopover } from "../components/monitors/ScheduleEditPopover";
 import { StockEditPopover } from "../components/monitors/StockEditPopover";
 import { EmptyState } from "../components/shared/EmptyState";
+import { FilterMenu } from "../components/shared/FilterMenu";
 import { LinkButton } from "../components/shared/LinkButton";
 import { PageHeader } from "../components/shared/PageHeader";
 import { MonitorListSkeleton } from "../components/shared/Skeletons";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
 import { Table, TableCell, TableHead } from "../components/ui/table";
-import { Toggle } from "../components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import {
@@ -455,97 +455,69 @@ function MonitorsToolbar({
   groupByHost: boolean;
   onGroupByHostChange: (value: boolean) => void;
 }) {
+  const countLabel =
+    visibleCount === totalCount
+      ? `${totalCount} ${totalCount === 1 ? "monitor" : "monitors"}`
+      : `${visibleCount} of ${totalCount}`;
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-0 grow sm:max-w-sm">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+      <div className="w-full min-w-0 sm:w-72">
+        <InputGroup className="h-8">
+          <InputGroupInput
+            aria-label="Search monitors"
+            placeholder="Search by name or URL"
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Search by name or URL"
-            aria-label="Search monitors"
-            className="pl-8"
           />
-        </div>
+          <InputGroupAddon align="inline-start">
+            <Search className="text-muted-foreground" aria-hidden="true" />
+          </InputGroupAddon>
+        </InputGroup>
+      </div>
+      <div className="flex items-center gap-2">
+        <FilterMenu
+          label="Status"
+          options={STATUS_FILTERS}
+          value={statusFilter}
+          onChange={onStatusFilterChange}
+          counts={statusCounts}
+        />
+        <FilterMenu
+          label="Activity"
+          options={ENABLED_FILTERS}
+          value={enabledFilter}
+          onChange={onEnabledFilterChange}
+          counts={enabledCounts}
+        />
+        {hasFilters ? (
+          <Button variant="ghost" size="sm" onClick={onClear}>
+            <X />
+            Clear
+          </Button>
+        ) : null}
+      </div>
+      <div className="ml-auto flex items-center gap-3">
+        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{countLabel}</span>
         <ToggleGroup
-          value={[enabledFilter]}
-          onValueChange={(value) => {
-            const next = value[value.length - 1];
-            if (next) onEnabledFilterChange(next as EnabledFilter);
-          }}
           variant="outline"
           size="sm"
           spacing={0}
-          aria-label="Filter by activity"
+          value={[groupByHost ? "grouped" : "flat"]}
+          onValueChange={(value) => {
+            const next = value[0];
+            if (next) onGroupByHostChange(next === "grouped");
+          }}
+          aria-label="Monitor view"
         >
-          {ENABLED_FILTERS.map((option) => (
-            <ToggleGroupItem key={option.id} value={option.id}>
-              {option.label}
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                {enabledCounts[option.id]}
-              </span>
-            </ToggleGroupItem>
-          ))}
+          <ToggleGroupItem value="flat" aria-label="Flat list" title="Flat list">
+            <List />
+            List
+          </ToggleGroupItem>
+          <ToggleGroupItem value="grouped" aria-label="Group by host" title="Group by host">
+            <Layers />
+            Grouped
+          </ToggleGroupItem>
         </ToggleGroup>
-        <Toggle
-          variant="outline"
-          size="sm"
-          pressed={groupByHost}
-          onPressedChange={onGroupByHostChange}
-          aria-label="Group by host"
-          title="Group by host"
-        >
-          <Layers className="h-3.5 w-3.5" />
-          Group by host
-        </Toggle>
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-muted-foreground">
-            {visibleCount === totalCount
-              ? `${totalCount} ${totalCount === 1 ? "monitor" : "monitors"}`
-              : `${visibleCount} of ${totalCount} shown`}
-          </span>
-          {hasFilters ? (
-            <Button variant="ghost" size="sm" onClick={onClear}>
-              <X className="h-3.5 w-3.5" />
-              Clear
-            </Button>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {STATUS_FILTERS.map((option) => {
-          const active = statusFilter === option.id;
-          const count = statusCounts[option.id] ?? 0;
-          if (option.id !== "all" && count === 0 && !active) return null;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onStatusFilterChange(option.id)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
-              )}
-              aria-pressed={active}
-            >
-              <span>{option.label}</span>
-              <span
-                className={cn(
-                  "rounded-full px-1.5 text-[10px] font-medium tabular-nums",
-                  active ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground"
-                )}
-              >
-                {count}
-              </span>
-            </button>
-          );
-        })}
       </div>
     </div>
   );
