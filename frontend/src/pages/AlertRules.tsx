@@ -508,6 +508,11 @@ function RuleCard({
           </div>
         </div>
 
+        <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
+          Alerts when <span className="font-medium text-foreground">{rule.threshold}+</span> of{" "}
+          {scopeText} are <span className="font-medium text-foreground">{statusText}</span>.
+        </p>
+
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0 space-y-1.5">
             <div className="flex items-baseline gap-1.5">
@@ -521,13 +526,10 @@ function RuleCard({
               </span>
               <span className="text-sm text-muted-foreground">/ {scopeSize}</span>
               <span className="text-xs text-muted-foreground">
-                monitor{scopeSize === 1 ? "" : "s"} {statusText}
+                monitor{scopeSize === 1 ? "" : "s"} {statusText} now
               </span>
             </div>
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{hint}</div>
-          </div>
-          <div className="hidden text-right text-[11px] text-muted-foreground sm:block">
-            Threshold {rule.threshold} of {scopeText}
           </div>
         </div>
 
