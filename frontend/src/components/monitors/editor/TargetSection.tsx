@@ -2,6 +2,7 @@ import { ExternalLink, Globe2 } from "lucide-react";
 import React from "react";
 import type { Monitor } from "../../../types";
 import { FormField } from "../../shared/FormFields";
+import { TagInput } from "../../shared/TagInput";
 import { Button } from "../../ui/button";
 import { Card, CardContent, CardHeader } from "../../ui/card";
 import { Input } from "../../ui/input";
@@ -83,6 +84,13 @@ export function TargetSection({
             </Button>
           </div>
         </div>
+        <FormField
+          label="Tags"
+          className="md:col-span-2"
+          tooltip="Group monitors by project (e.g. “GPU build”, “kid's birthday”). Filter and group the monitors list by tag, independent of host."
+        >
+          <TagInput value={monitor.tags ?? []} onChange={(next) => onPatch("tags", next)} />
+        </FormField>
       </CardContent>
     </Card>
   );
