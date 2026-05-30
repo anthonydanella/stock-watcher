@@ -5,8 +5,13 @@ import {
   ArrowUpDown,
   Layers,
   List,
+  LoaderCircle,
+  Pause,
+  Play,
   Plus,
+  Power,
   Search,
+  Trash2,
   X
 } from "lucide-react";
 import React from "react";
@@ -27,9 +32,20 @@ import { FilterMenu } from "../components/shared/FilterMenu";
 import { LinkButton } from "../components/shared/LinkButton";
 import { PageHeader } from "../components/shared/PageHeader";
 import { MonitorListSkeleton } from "../components/shared/Skeletons";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "../components/ui/alert-dialog";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
 import { Table, TableCell, TableHead } from "../components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
@@ -83,6 +99,10 @@ function timeValue(value: string | null | undefined): number {
   return Number.isNaN(t) ? 0 : t;
 }
 
+function pluralize(count: number): string {
+  return `${count} ${count === 1 ? "monitor" : "monitors"}`;
+}
+
 export function Monitors() {
   const [monitors, setMonitors] = React.useState<Monitor[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -93,6 +113,10 @@ export function Monitors() {
   const [sortKey, setSortKey] = React.useState<SortKey>("name");
   const [sortDir, setSortDir] = React.useState<SortDir>("asc");
   const [groupByHost, setGroupByHost] = React.useState(true);
+  const [selected, setSelected] = React.useState<Set<number>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = React.useState<"enable" | "pause" | "run" | "delete" | null>(
+    null
+  );
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -236,6 +260,87 @@ export function Monitors() {
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [sorted, groupByHost]);
 
+  const selectedMonitors = React.useMemo(
+    () => monitors.filter((monitor) => selected.has(monitor.id)),
+    [monitors, selected]
+  );
+  const allVisibleSelected = sorted.length > 0 && sorted.every((m) => selected.has(m.id));
+  const someVisibleSelected = !allVisibleSelected && sorted.some((m) => selected.has(m.id));
+
+  function setSelectedFor(id: number, checked: boolean) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllVisible(checked: boolean) {
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const monitor of sorted) {
+        if (checked) next.add(monitor.id);
+        else next.delete(monitor.id);
+      }
+      return next;
+    });
+  }
+
+  async function bulkSetEnabled(enabled: boolean) {
+    // toggleMonitor flips state, so only act on rows that aren't already there.
+    const targets = selectedMonitors.filter((m) => m.enabled !== enabled);
+    if (!targets.length) {
+      toast.info(`Selected monitors are already ${enabled ? "active" : "paused"}.`);
+      return;
+    }
+    setBulkBusy(enabled ? "enable" : "pause");
+    const results = await Promise.allSettled(targets.map((m) => api.toggleMonitor(m.id)));
+    let failed = 0;
+    for (const result of results) {
+      if (result.status === "fulfilled") patchMonitor(result.value);
+      else failed++;
+    }
+    setBulkBusy(null);
+    if (failed) toast.error(`${failed} of ${targets.length} could not be updated.`);
+    else toast.success(`${enabled ? "Enabled" : "Paused"} ${pluralize(targets.length)}.`);
+  }
+
+  async function bulkRun() {
+    const targets = selectedMonitors;
+    if (!targets.length) return;
+    setBulkBusy("run");
+    const results = await Promise.allSettled(targets.map((m) => api.runMonitor(m.id)));
+    let failed = 0;
+    for (const result of results) {
+      if (result.status === "fulfilled") patchMonitor(result.value);
+      else failed++;
+    }
+    setBulkBusy(null);
+    if (failed) toast.error(`${failed} of ${targets.length} runs failed.`);
+    else toast.success(`Ran ${pluralize(targets.length)}.`);
+  }
+
+  async function bulkDelete() {
+    const targets = selectedMonitors;
+    if (!targets.length) return;
+    setBulkBusy("delete");
+    const results = await Promise.allSettled(
+      targets.map((m) => api.deleteMonitor(m.id).then(() => m.id))
+    );
+    const deleted = new Set<number>();
+    let failed = 0;
+    for (const result of results) {
+      if (result.status === "fulfilled") deleted.add(result.value);
+      else failed++;
+    }
+    setMonitors((current) => current.filter((m) => !deleted.has(m.id)));
+    setSelected(new Set());
+    setBulkBusy(null);
+    if (failed) toast.error(`${failed} of ${targets.length} could not be deleted.`);
+    else toast.success(`Deleted ${pluralize(targets.length)}.`);
+  }
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
@@ -303,6 +408,8 @@ export function Monitors() {
                           onAction={action}
                           onDuplicate={duplicate}
                           onPatch={patchMonitor}
+                          selected={selected.has(monitor.id)}
+                          onSelectedChange={(checked) => setSelectedFor(monitor.id, checked)}
                         />
                       ))}
                     </div>
@@ -316,6 +423,8 @@ export function Monitors() {
                     onAction={action}
                     onDuplicate={duplicate}
                     onPatch={patchMonitor}
+                    selected={selected.has(monitor.id)}
+                    onSelectedChange={(checked) => setSelectedFor(monitor.id, checked)}
                   />
                 ))}
             {!sorted.length ? (
@@ -334,7 +443,15 @@ export function Monitors() {
               <Table className="table-fixed">
                 <thead className="border-b bg-muted/30">
                   <tr>
-                    <TableHead className="w-24 pl-4">Preview</TableHead>
+                    <TableHead className="w-10 pl-4">
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        indeterminate={someVisibleSelected}
+                        onCheckedChange={(checked) => toggleSelectAllVisible(checked === true)}
+                        aria-label="Select all monitors"
+                      />
+                    </TableHead>
+                    <TableHead className="w-20">Preview</TableHead>
                     <SortableHead
                       label="Monitor"
                       sortKey="name"
@@ -384,7 +501,7 @@ export function Monitors() {
                       {hostMonitors.length > 1 ? (
                         <tr className="bg-muted/40">
                           <TableCell
-                            colSpan={8}
+                            colSpan={9}
                             className="px-4 py-1.5 text-xs font-medium text-muted-foreground"
                           >
                             <div className="flex items-center gap-2">
@@ -404,6 +521,8 @@ export function Monitors() {
                           onAction={action}
                           onDuplicate={duplicate}
                           onPatch={patchMonitor}
+                          selected={selected.has(monitor.id)}
+                          onSelectedChange={(checked) => setSelectedFor(monitor.id, checked)}
                         />
                       ))}
                     </tbody>
@@ -418,6 +537,8 @@ export function Monitors() {
                         onAction={action}
                         onDuplicate={duplicate}
                         onPatch={patchMonitor}
+                        selected={selected.has(monitor.id)}
+                        onSelectedChange={(checked) => setSelectedFor(monitor.id, checked)}
                       />
                     ))}
                   </tbody>
@@ -425,7 +546,7 @@ export function Monitors() {
                 {!sorted.length ? (
                   <tbody>
                     <tr>
-                      <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
                         {monitors.length === 0
                           ? "No monitors configured."
                           : "No monitors match the current filters."}
@@ -436,6 +557,18 @@ export function Monitors() {
               </Table>
             </CardContent>
           </Card>
+
+          {selectedMonitors.length > 0 ? (
+            <BulkActionBar
+              count={selectedMonitors.length}
+              busy={bulkBusy}
+              onEnable={() => bulkSetEnabled(true)}
+              onPause={() => bulkSetEnabled(false)}
+              onRun={bulkRun}
+              onDelete={bulkDelete}
+              onClear={() => setSelected(new Set())}
+            />
+          ) : null}
         </>
       ) : null}
     </div>
@@ -581,7 +714,9 @@ function MonitorRow({
   busyActions,
   onAction,
   onDuplicate,
-  onPatch
+  onPatch,
+  selected,
+  onSelectedChange
 }: {
   monitor: Monitor;
   busyActions: Record<number, MonitorActionKind>;
@@ -592,12 +727,27 @@ function MonitorRow({
   ) => Promise<void>;
   onDuplicate: (monitor: Monitor) => Promise<void>;
   onPatch: (updated: Monitor) => void;
+  selected: boolean;
+  onSelectedChange: (checked: boolean) => void;
 }) {
   const cooling = isCoolingDown(monitor);
   const isQuantity = monitor.stock_mode === "quantity";
   return (
-    <tr className={cn("align-middle", !monitor.enabled && "opacity-60 hover:opacity-100")}>
-      <TableCell className="w-24 py-2 pl-4">
+    <tr
+      data-selected={selected || undefined}
+      className={cn(
+        "align-middle data-selected:bg-primary/5",
+        !monitor.enabled && "opacity-60 hover:opacity-100"
+      )}
+    >
+      <TableCell className="w-10 py-2 pl-4">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={(checked) => onSelectedChange(checked === true)}
+          aria-label={`Select ${monitor.name}`}
+        />
+      </TableCell>
+      <TableCell className="w-20 py-2">
         <MonitorScreenshot monitor={monitor} compact />
       </TableCell>
       <TableCell className="min-w-0 py-2">
@@ -704,5 +854,93 @@ function StockCell({
         ) : null}
       </div>
     </StockEditPopover>
+  );
+}
+
+function BulkActionBar({
+  count,
+  busy,
+  onEnable,
+  onPause,
+  onRun,
+  onDelete,
+  onClear
+}: {
+  count: number;
+  busy: "enable" | "pause" | "run" | "delete" | null;
+  onEnable: () => void;
+  onPause: () => void;
+  onRun: () => void;
+  onDelete: () => void;
+  onClear: () => void;
+}) {
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const anyBusy = busy !== null;
+  const label = `${count} ${count === 1 ? "monitor" : "monitors"}`;
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
+      <section
+        aria-label="Bulk actions"
+        className="pointer-events-auto flex flex-wrap items-center gap-1 rounded-lg border bg-card p-1.5 pl-3 shadow-lg"
+      >
+        <span className="text-sm font-medium tabular-nums">{label} selected</span>
+        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+        <Button variant="ghost" size="sm" disabled={anyBusy} onClick={onEnable}>
+          {busy === "enable" ? <LoaderCircle className="animate-spin" /> : <Power />}
+          Enable
+        </Button>
+        <Button variant="ghost" size="sm" disabled={anyBusy} onClick={onPause}>
+          {busy === "pause" ? <LoaderCircle className="animate-spin" /> : <Pause />}
+          Pause
+        </Button>
+        <Button variant="ghost" size="sm" disabled={anyBusy} onClick={onRun}>
+          {busy === "run" ? <LoaderCircle className="animate-spin" /> : <Play />}
+          Run now
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={anyBusy}
+          className="text-destructive hover:text-destructive"
+          onClick={() => setConfirmOpen(true)}
+        >
+          {busy === "delete" ? <LoaderCircle className="animate-spin" /> : <Trash2 />}
+          Delete
+        </Button>
+        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={anyBusy}
+          onClick={onClear}
+          aria-label="Clear selection"
+        >
+          <X />
+        </Button>
+      </section>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {label}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the selected monitors and their check history. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setConfirmOpen(false);
+                onDelete();
+              }}
+            >
+              Delete {label}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
