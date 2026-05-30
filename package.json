@@ -1,0 +1,14 @@
+{
+  "name": "stock-checker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted stock checker with a FastAPI backend and a React UI.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "biome check",
+    "format": "biome check --write"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.0"
+  }
+}

@@ -1,0 +1,16 @@
+.git
+.github
+.vscode
+.agents
+.claude
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+data
+node_modules
+frontend/node_modules
+frontend/dist
+.env
+.env.local

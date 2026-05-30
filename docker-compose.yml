@@ -1,0 +1,17 @@
+services:
+  stock-checker:
+    build: .
+    container_name: stock-checker
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /data
+      TZ: UTC
+      NTFY_SERVER: https://ntfy.sh
+      NTFY_TOPIC: ""
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

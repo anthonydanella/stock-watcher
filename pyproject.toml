@@ -1,0 +1,36 @@
+[project]
+name = "stock-checker"
+version = "0.1.0"
+description = "Docker-friendly stock checker with a FastAPI web UI and ntfy notifications."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4==4.12.3",
+  "fastapi==0.115.5",
+  "httpx==0.27.2",
+  "playwright==1.49.0",
+  "python-dotenv==1.0.1",
+  "uvicorn[standard]==0.32.1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==8.3.4",
+  "pytest-asyncio==0.24.0",
+  "respx==0.21.1",
+  "ruff==0.15.8",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["I"]

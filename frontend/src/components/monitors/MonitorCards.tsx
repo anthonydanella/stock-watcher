@@ -1,0 +1,289 @@
+import {
+  Calendar,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  LoaderCircle,
+  Play,
+  RefreshCw,
+  ShieldAlert
+} from "lucide-react";
+import React from "react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+
+import { api } from "../../api";
+import {
+  errorMessage,
+  failureTypeLabel,
+  formatCadence,
+  formatDate,
+  formatScheduleState,
+  formatShortDate,
+  statusBadgeClass,
+  statusLabel,
+  timeAgo,
+  warningAlertClass
+} from "../../lib/format";
+import { cn } from "../../lib/utils";
+import type { Monitor } from "../../types";
+import { EmptyState } from "../shared/EmptyState";
+import { LinkButton } from "../shared/LinkButton";
+import { Alert } from "../ui/alert";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { MonitorQuantitySparkline } from "./MonitorQuantitySparkline";
+import { MonitorScreenshot } from "./MonitorScreenshot";
+
+function getStatusTheme(status: string | null | undefined, enabled: boolean) {
+  if (!enabled) {
+    return {
+      borderHover: "hover:border-zinc-300/40 dark:hover:border-zinc-700/40"
+    };
+  }
+
+  switch (status) {
+    case "in_stock":
+      return {
+        borderHover: "hover:border-emerald-500/30 dark:hover:border-emerald-500/20"
+      };
+    case "out_of_stock":
+      return {
+        borderHover: "hover:border-slate-400/30 dark:hover:border-slate-500/20"
+      };
+    case "error":
+      return {
+        borderHover: "hover:border-amber-500/30 dark:hover:border-amber-500/20"
+      };
+    case "challenge":
+      return {
+        borderHover: "hover:border-violet-500/30 dark:hover:border-violet-500/20"
+      };
+    default:
+      return {
+        borderHover: "hover:border-zinc-400/30 dark:hover:border-zinc-500/20"
+      };
+  }
+}
+
+export function MonitorCards({
+  monitors,
+  onChanged
+}: {
+  monitors: Monitor[];
+  onChanged: () => Promise<void> | void;
+}) {
+  const [runningIds, setRunningIds] = React.useState<Set<number>>(() => new Set());
+
+  async function run(monitor: Monitor) {
+    setRunningIds((current) => new Set(current).add(monitor.id));
+    try {
+      await api.runMonitor(monitor.id);
+      await onChanged();
+    } catch (exc) {
+      toast.error(errorMessage(exc, `Could not run ${monitor.name}`));
+    } finally {
+      setRunningIds((current) => {
+        const next = new Set(current);
+        next.delete(monitor.id);
+        return next;
+      });
+    }
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {monitors.map((monitor) => {
+        const running = runningIds.has(monitor.id);
+        const theme = getStatusTheme(monitor.status, monitor.enabled);
+        const hasCooldown = Boolean(monitor.cooldown_until);
+        return (
+          <Card
+            key={monitor.id}
+            className={cn(
+              "min-w-0 overflow-hidden rounded-lg border border-border shadow-sm transition duration-200 ease-in-out hover:shadow-md",
+              !monitor.enabled && "opacity-75 hover:opacity-100",
+              theme.borderHover
+            )}
+          >
+            <CardHeader>
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="min-w-0 wrap-break-word">
+                    <Link
+                      to={`/monitors/${monitor.id}`}
+                      className="text-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                    >
+                      {monitor.name}
+                    </Link>
+                  </CardTitle>
+                  {monitor.last_checked_at ? (
+                    <time
+                      dateTime={monitor.last_checked_at}
+                      title={formatDate(monitor.last_checked_at)}
+                      className="text-xs text-muted-foreground/80 flex items-center gap-1.5 mt-0.5"
+                    >
+                      <Clock className="h-3 w-3 shrink-0 opacity-70" />
+                      <span>Checked {timeAgo(monitor.last_checked_at)}</span>
+                    </time>
+                  ) : (
+                    <span className="text-xs text-muted-foreground/80 flex items-center gap-1.5 mt-0.5">
+                      <Clock className="h-3 w-3 shrink-0 opacity-70" />
+                      <span>Never checked</span>
+                    </span>
+                  )}
+                  <CardDescription className="mt-1.5 min-w-0 max-w-full">
+                    <a
+                      href={monitor.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex min-w-0 max-w-full items-center gap-1 font-mono text-[11px] text-muted-foreground/75 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
+                      title={monitor.url}
+                    >
+                      <span className="min-w-0 truncate">{monitor.url}</span>
+                      <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
+                    </a>
+                  </CardDescription>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {monitor.stock_mode === "quantity" && monitor.last_quantity != null ? (
+                    <span className="inline-flex items-baseline gap-1 font-mono text-base font-semibold tabular-nums text-foreground">
+                      {monitor.last_quantity.toLocaleString()}
+                      <span className="text-[10px] font-normal uppercase tracking-wide text-muted-foreground">
+                        left
+                      </span>
+                    </span>
+                  ) : null}
+                  <Badge
+                    className={cn(
+                      "shrink-0 shadow-xs border text-xs font-semibold px-2 py-0.5",
+                      statusBadgeClass(monitor.status)
+                    )}
+                    title={statusLabel(monitor.status)}
+                  >
+                    {statusLabel(monitor.status)}
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 space-y-3.5">
+              <MonitorScreenshot monitor={monitor} />
+              {monitor.stock_mode === "quantity" &&
+              monitor.recent_quantities &&
+              monitor.recent_quantities.length > 1 ? (
+                <div className="flex items-center justify-between gap-3 rounded-md border bg-secondary/30 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90">
+                      Trend
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Last {monitor.recent_quantities.length} checks
+                      {monitor.low_stock_threshold != null
+                        ? ` · low ≤ ${monitor.low_stock_threshold}`
+                        : ""}
+                    </p>
+                  </div>
+                  <MonitorQuantitySparkline
+                    values={monitor.recent_quantities}
+                    threshold={monitor.low_stock_threshold}
+                  />
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-2 gap-3 text-xs py-1">
+                <div className="min-w-0 flex items-start gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 mt-0.5 text-muted-foreground/80 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90">
+                      Next Check
+                    </span>
+                    <span
+                      className="block truncate font-medium text-foreground/90"
+                      title={formatScheduleState(monitor)}
+                    >
+                      {formatScheduleState(monitor, true)}
+                    </span>
+                  </div>
+                </div>
+                <div className="min-w-0 flex items-start gap-1.5">
+                  <RefreshCw className="h-3.5 w-3.5 mt-0.5 text-muted-foreground/80 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90">
+                      Cadence
+                    </span>
+                    <span
+                      className="block truncate font-medium text-foreground/90"
+                      title={formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
+                    >
+                      {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
+                    </span>
+                  </div>
+                </div>
+                {hasCooldown ? (
+                  <div className="min-w-0 flex items-start gap-1.5 col-span-2">
+                    <ShieldAlert className="h-3.5 w-3.5 mt-0.5 text-amber-500 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-amber-500/90">
+                        Cooldown
+                      </span>
+                      <span
+                        className="block truncate font-medium text-amber-600 dark:text-amber-400"
+                        title={formatDate(monitor.cooldown_until)}
+                      >
+                        {formatShortDate(monitor.cooldown_until)}
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {monitor.last_error ? (
+                <Alert
+                  className={cn(
+                    "text-xs py-2 px-3 border rounded-md shadow-2xs",
+                    warningAlertClass
+                  )}
+                >
+                  <span className="font-semibold">
+                    {monitor.last_error_type
+                      ? `${failureTypeLabel(monitor.last_error_type)}: `
+                      : "Error: "}
+                  </span>
+                  {monitor.last_error}
+                </Alert>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={running}
+                  aria-busy={running}
+                  onClick={() => run(monitor)}
+                >
+                  {running ? (
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5" />
+                  )}
+                  {running ? "Running" : "Run check"}
+                </Button>
+                <LinkButton variant="outline" size="sm" to={`/monitors/${monitor.id}`}>
+                  Open
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </LinkButton>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+      {!monitors.length ? (
+        <EmptyState
+          className="md:col-span-2 xl:col-span-3"
+          message="No monitors yet. Add one to start checking stock."
+        />
+      ) : null}
+    </div>
+  );
+}
