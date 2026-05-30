@@ -43,6 +43,7 @@ MONITOR_UPDATE_COLUMNS = {
     "notify_on_stock_change",
     "notify_on_error",
     "notify_on_challenge",
+    "tags",
 }
 
 
@@ -92,6 +93,7 @@ def monitor_from_row(row: sqlite3.Row) -> Monitor:
         notify_on_challenge=bool(row["notify_on_challenge"])
         if "notify_on_challenge" in keys
         else True,
+        tags=[str(value) for value in _json_list(row["tags"], [])] if "tags" in keys else [],
     )
 
 
@@ -202,8 +204,9 @@ class Repository:
                 rule_type, selector_or_path, match_mode, match_value, user_agent_mode,
                 timeout_seconds, stock_mode, quantity_pattern, low_stock_threshold,
                 status, next_check_at,
-                notifications_enabled, notify_on_stock_change, notify_on_error, notify_on_challenge
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                notifications_enabled, notify_on_stock_change, notify_on_error, notify_on_challenge,
+                tags
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 monitor.name,
@@ -227,6 +230,7 @@ class Repository:
                 int(monitor.notify_on_stock_change),
                 int(monitor.notify_on_error),
                 int(monitor.notify_on_challenge),
+                json.dumps(monitor.tags),
             ),
         )
         self.conn.commit()

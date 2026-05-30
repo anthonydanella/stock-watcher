@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -83,6 +84,7 @@ class MonitorPayload(BaseModel):
     notify_on_stock_change: bool = True
     notify_on_error: bool = True
     notify_on_challenge: bool = True
+    tags: list[str] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -90,6 +92,26 @@ class MonitorPayload(BaseModel):
         if not value.strip():
             raise ValueError("Monitor name must not be blank")
         return value
+
+    @field_validator("tags")
+    @classmethod
+    def normalize_tags(cls, value: list[str]) -> list[str]:
+        # Trim, drop blanks, cap length, and dedupe case-insensitively while
+        # preserving the first-seen casing and order.
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            text = item.strip()[:40].strip()
+            if not text:
+                continue
+            key = text.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(text)
+            if len(normalized) >= 20:
+                break
+        return normalized
 
     @field_validator("quantity_pattern")
     @classmethod
@@ -494,6 +516,7 @@ def _monitor_from_payload(payload: MonitorPayload) -> Monitor:
         notify_on_stock_change=payload.notify_on_stock_change,
         notify_on_error=payload.notify_on_error,
         notify_on_challenge=payload.notify_on_challenge,
+        tags=payload.tags,
         status=STATUS_UNKNOWN,
         next_check_at=utcnow() + timedelta(seconds=30),
     )
@@ -520,6 +543,7 @@ def _monitor_fields_from_payload(payload: MonitorPayload) -> dict[str, Any]:
         "notify_on_stock_change": int(payload.notify_on_stock_change),
         "notify_on_error": int(payload.notify_on_error),
         "notify_on_challenge": int(payload.notify_on_challenge),
+        "tags": json.dumps(payload.tags),
     }
 
 
@@ -560,6 +584,7 @@ def _monitor_to_dict(
         "notify_on_stock_change": monitor.notify_on_stock_change,
         "notify_on_error": monitor.notify_on_error,
         "notify_on_challenge": monitor.notify_on_challenge,
+        "tags": list(monitor.tags),
         "last_screenshot_url": (
             screenshot_url(monitor.id)
             if monitor.id
