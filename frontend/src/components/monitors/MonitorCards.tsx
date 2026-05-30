@@ -94,15 +94,20 @@ export function MonitorCards({
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {monitors.map((monitor) => {
+      {monitors.map((monitor, index) => {
         const running = runningIds.has(monitor.id);
         const theme = getStatusTheme(monitor.status, monitor.enabled);
         const hasCooldown = Boolean(monitor.cooldown_until);
         return (
           <Card
             key={monitor.id}
+            // Subtle staggered entrance, capped so longer lists don't crawl in.
+            style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
             className={cn(
-              "min-w-0 overflow-hidden rounded-lg border border-border shadow-sm transition duration-200 ease-in-out hover:shadow-md",
+              "min-w-0 overflow-hidden rounded-lg border border-border shadow-sm transition duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md",
+              // fill-mode-backwards holds the pre-animation state during the staggered
+              // delay (no flash) without pinning transform, so hover:-translate-y keeps working.
+              "fade-in slide-in-from-bottom-2 fill-mode-backwards animate-in duration-500",
               !monitor.enabled && "opacity-75 hover:opacity-100",
               theme.borderHover
             )}
