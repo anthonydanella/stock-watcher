@@ -1,7 +1,7 @@
 services:
-  stock-checker:
+  stock-watcher:
     build: .
-    container_name: stock-checker
+    container_name: stock-watcher
     ports:
       - "8000:8000"
     env_file:

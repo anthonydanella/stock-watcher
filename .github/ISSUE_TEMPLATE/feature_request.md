@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for Stock Checker
+about: Suggest an idea for Stock Watcher
 title: ""
 labels: enhancement
 assignees: ""

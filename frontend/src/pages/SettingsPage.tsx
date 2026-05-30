@@ -142,7 +142,7 @@ export function SettingsPage() {
                   </h2>
                   <InfoTooltip side="right">
                     ntfy is an open-source push notification service. Set a topic, subscribe on your
-                    phone or browser via the ntfy app, and the stock checker pushes alerts when
+                    phone or browser via the ntfy app, and the stock watcher pushes alerts when
                     status changes or errors repeat.
                   </InfoTooltip>
                 </div>

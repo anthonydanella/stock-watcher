@@ -466,7 +466,7 @@ class StockChecker:
             )
             if notify_enabled and monitor.notify_on_challenge:
                 await self._notify(
-                    app_settings, monitor, "Stock checker challenge", message, tags="warning"
+                    app_settings, monitor, "Stock watcher challenge", message, tags="warning"
                 )
             return
         if new_status == STATUS_ERROR and failure_count in {3, 6}:
@@ -476,7 +476,7 @@ class StockChecker:
             self.repo.add_event(monitor.id, EVENT_ERROR, message, old_status, new_status, evidence)
             if notify_enabled and monitor.notify_on_error:
                 await self._notify(
-                    app_settings, monitor, "Stock checker errors", message, tags="warning"
+                    app_settings, monitor, "Stock watcher errors", message, tags="warning"
                 )
             return
         if old_status != new_status:
@@ -484,13 +484,13 @@ class StockChecker:
             old_descriptor = _status_descriptor(old_status, old_quantity)
             if old_status == STATUS_UNKNOWN and new_status in STOCK_STATUSES:
                 event_type = EVENT_STATUS_CHANGE
-                title = "Stock checker active"
+                title = "Stock watcher active"
                 message = (
                     f"{monitor.name}: initial check completed, current status is {new_descriptor}."
                 )
             elif old_status == STATUS_ERROR and new_status in STOCK_STATUSES:
                 event_type = EVENT_RECOVERY
-                title = "Stock checker recovered"
+                title = "Stock watcher recovered"
                 message = f"{monitor.name}: checks recovered, current status is {new_descriptor}."
             else:
                 event_type = EVENT_STATUS_CHANGE
