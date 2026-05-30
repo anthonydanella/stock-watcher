@@ -62,6 +62,44 @@ def test_monitor_crud(monkeypatch, tmp_path) -> None:  # noqa: ANN001
     assert deleted.status_code == 204
 
 
+def test_monitor_tags_normalized_and_persisted(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    client = TestClient(app)
+
+    created = client.post(
+        "/api/monitors",
+        json={
+            "name": "GPU",
+            "url": "https://example.com/gpu",
+            "match_value": "in stock",
+            "tags": ["GPU build", " GPU build ", "gpu build", "   ", "Wishlist"],
+        },
+    )
+    assert created.status_code == 201
+    # Trimmed, blanks dropped, case-insensitive dedupe keeps the first casing and order.
+    assert created.json()["tags"] == ["GPU build", "Wishlist"]
+    monitor_id = created.json()["id"]
+
+    listed = client.get("/api/monitors")
+    assert listed.status_code == 200
+    assert listed.json()[0]["tags"] == ["GPU build", "Wishlist"]
+
+    updated = client.put(
+        f"/api/monitors/{monitor_id}",
+        json={
+            "name": "GPU",
+            "url": "https://example.com/gpu",
+            "match_value": "in stock",
+            "tags": ["Wishlist", "Black Friday"],
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["tags"] == ["Wishlist", "Black Friday"]
+
+    fetched = client.get(f"/api/monitors/{monitor_id}")
+    assert fetched.json()["tags"] == ["Wishlist", "Black Friday"]
+
+
 def test_settings_api(monkeypatch, tmp_path) -> None:  # noqa: ANN001
     app = load_app(monkeypatch, tmp_path)
     client = TestClient(app)

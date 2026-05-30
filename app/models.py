@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
@@ -102,6 +102,7 @@ class Monitor:
     notify_on_stock_change: bool = True
     notify_on_error: bool = True
     notify_on_challenge: bool = True
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
