@@ -19,7 +19,7 @@ from app.models import (
     Monitor,
 )
 from app.rules import parse_quantity
-from tests.checker_helpers import FakeChecker, FakeNtfy, repo, settings
+from tests.checker_helpers import FakeChecker, FakeNtfy, repo, require_monitor, settings
 
 
 def make_quantity_monitor(threshold: int | None = 2) -> Monitor:
@@ -123,7 +123,7 @@ def test_parse_quantity_named_groups_no_match_reports_no_match() -> None:
 async def test_check_monitor_quantity_above_threshold_is_in_stock(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_quantity_monitor(threshold=2))
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -134,7 +134,7 @@ async def test_check_monitor_quantity_above_threshold_is_in_stock(tmp_path: Path
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_IN_STOCK
     assert updated.last_quantity == 7
     attempts = repository.list_attempts(monitor_id)
@@ -145,7 +145,7 @@ async def test_check_monitor_quantity_above_threshold_is_in_stock(tmp_path: Path
 async def test_check_monitor_quantity_at_or_below_threshold_is_low_stock(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_quantity_monitor(threshold=3))
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -156,7 +156,7 @@ async def test_check_monitor_quantity_at_or_below_threshold_is_low_stock(tmp_pat
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_LOW_STOCK
     assert updated.last_quantity == 2
 
@@ -165,7 +165,7 @@ async def test_check_monitor_quantity_at_or_below_threshold_is_low_stock(tmp_pat
 async def test_check_monitor_quantity_zero_is_out_of_stock(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_quantity_monitor(threshold=2))
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -176,7 +176,7 @@ async def test_check_monitor_quantity_zero_is_out_of_stock(tmp_path: Path) -> No
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_OUT_OF_STOCK
     assert updated.last_quantity == 0
 
@@ -191,7 +191,7 @@ def make_quantity_monitor_with_oos(threshold: int | None = 2) -> Monitor:
 async def test_check_monitor_quantity_oos_pattern_treats_text_as_zero(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_quantity_monitor_with_oos(threshold=2))
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -202,7 +202,7 @@ async def test_check_monitor_quantity_oos_pattern_treats_text_as_zero(tmp_path: 
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_OUT_OF_STOCK
     assert updated.last_quantity == 0
 
@@ -211,7 +211,7 @@ async def test_check_monitor_quantity_oos_pattern_treats_text_as_zero(tmp_path: 
 async def test_check_monitor_quantity_oos_pattern_still_reads_count(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_quantity_monitor_with_oos(threshold=2))
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -222,7 +222,7 @@ async def test_check_monitor_quantity_oos_pattern_still_reads_count(tmp_path: Pa
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_IN_STOCK
     assert updated.last_quantity == 6
 
@@ -231,7 +231,7 @@ async def test_check_monitor_quantity_oos_pattern_still_reads_count(tmp_path: Pa
 async def test_check_monitor_quantity_parse_failure_records_error(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_quantity_monitor(threshold=2))
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -242,7 +242,7 @@ async def test_check_monitor_quantity_parse_failure_records_error(tmp_path: Path
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == "error"
     assert updated.last_error_type == ERROR_QUANTITY_PARSE
     assert updated.last_quantity is None
@@ -252,7 +252,7 @@ async def test_check_monitor_quantity_parse_failure_records_error(tmp_path: Path
 async def test_check_monitor_low_stock_triggers_notification(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_quantity_monitor(threshold=3))
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -666,7 +666,7 @@ def test_repository_round_trips_quantity_fields(tmp_path: Path) -> None:
         monitor_id, "in_stock", True, 100, 200, "", "Quantity: 9", "", "", quantity=9
     )
 
-    fetched = repository.get_monitor(monitor_id)
+    fetched = require_monitor(repository, monitor_id)
     assert fetched.stock_mode == STOCK_MODE_QUANTITY
     assert fetched.quantity_pattern == r"(\d+)\s*left"
     assert fetched.low_stock_threshold == 4

@@ -328,7 +328,9 @@ def prepare_html_for_llm(content: str, limit: int = HTML_LIMIT) -> str:
     except Exception:
         return _truncate(content, limit)
     for tag in soup.find_all("script"):
-        if (tag.get("type") or "").strip().lower() != "application/ld+json":
+        type_attr = tag.get("type")
+        type_str = type_attr if isinstance(type_attr, str) else ""
+        if type_str.strip().lower() != "application/ld+json":
             tag.decompose()
     for tag in soup(["style", "noscript", "svg", "iframe", "template", "link", "meta", "path"]):
         tag.decompose()

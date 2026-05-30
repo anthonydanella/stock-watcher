@@ -651,14 +651,12 @@ def _scheduler_status_to_dict() -> dict[str, Any]:
         if monitor.cooldown_until is not None and monitor.cooldown_until > now
     )
     due_monitor_count = repo.count_due_monitors(now)
-    next_due_at = min(
-        (
-            _effective_next_check(monitor)
-            for monitor in enabled_monitors
-            if _effective_next_check(monitor) is not None
-        ),
-        default=None,
-    )
+    next_due_candidates = [
+        next_check
+        for monitor in enabled_monitors
+        if (next_check := _effective_next_check(monitor)) is not None
+    ]
+    next_due_at = min(next_due_candidates, default=None)
     if not browser_dependency_available:
         browser_reason = "The page-rendering dependency is not installed"
     else:
