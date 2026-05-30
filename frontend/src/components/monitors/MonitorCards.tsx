@@ -241,16 +241,18 @@ export function MonitorCards({
               {monitor.last_error ? (
                 <Alert
                   className={cn(
-                    "text-xs py-2 px-3 border rounded-md shadow-2xs",
+                    "block text-xs py-2 px-3 border rounded-md shadow-2xs",
                     warningAlertClass
                   )}
                 >
-                  <span className="font-semibold">
-                    {monitor.last_error_type
-                      ? `${failureTypeLabel(monitor.last_error_type)}: `
-                      : "Error: "}
-                  </span>
-                  {monitor.last_error}
+                  <p className="line-clamp-3 min-w-0 break-words [overflow-wrap:anywhere]">
+                    <span className="font-semibold">
+                      {monitor.last_error_type
+                        ? `${failureTypeLabel(monitor.last_error_type)}: `
+                        : "Error: "}
+                    </span>
+                    {monitor.last_error}
+                  </p>
                 </Alert>
               ) : null}
 
