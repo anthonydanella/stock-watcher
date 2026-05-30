@@ -337,20 +337,27 @@ function RuleCard({
   const progress = Math.min(100, (matching / denominator) * 100);
   const thresholdPos = Math.min(100, (rule.threshold / denominator) * 100);
   const state = ruleState(rule);
+  const statusText = rule.trigger_statuses.map(statusLabel).join(" or ").toLowerCase();
   const scopeText =
     rule.monitor_ids.length === 0
-      ? "all monitors"
+      ? `all ${totalMonitors} monitor${totalMonitors === 1 ? "" : "s"}`
       : `${rule.monitor_ids.length} monitor${rule.monitor_ids.length === 1 ? "" : "s"}`;
-  const statusText = rule.trigger_statuses.map(statusLabel).join(", ");
-  const summary = `When ${rule.threshold} or more of ${scopeText} ${
-    rule.trigger_statuses.length === 1 ? "is" : "are in"
-  } ${statusText}`;
+  const remaining = Math.max(0, rule.threshold - matching);
+  const hint =
+    state === "triggered"
+      ? "Threshold reached"
+      : state === "paused"
+        ? "Paused — not evaluating"
+        : remaining === 0
+          ? "Ready to fire"
+          : `${remaining} more needed to fire`;
   const accent =
     state === "triggered"
-      ? "border-l-emerald-500/70"
+      ? "border-l-emerald-500"
       : state === "armed"
-        ? "border-l-primary/40"
-        : "border-l-muted";
+        ? "border-l-primary/60"
+        : "border-l-muted-foreground/20";
+  const tint = state === "triggered" ? "bg-emerald-50/40 dark:bg-emerald-950/10" : "";
 
   return (
     <Card
@@ -358,114 +365,138 @@ function RuleCard({
       className={cn(
         "rounded-md border border-border border-l-4 shadow-sm ring-0 transition-shadow hover:shadow-md",
         accent,
+        tint,
         !rule.enabled && "opacity-75 hover:opacity-100"
       )}
     >
-      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
+      <CardContent className="space-y-3">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <StateDot state={state} />
             <button
               type="button"
               onClick={onEdit}
-              className="text-left text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="truncate text-left text-sm font-semibold text-foreground hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               {rule.name}
             </button>
             <StateBadge state={state} />
-            {rule.trigger_statuses.map((status) => (
-              <Badge key={status} variant="outline" className="rounded-full text-[10px] uppercase">
-                {statusLabel(status)}
-              </Badge>
-            ))}
           </div>
-
-          <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{summary}.</p>
-
-          <div className="space-y-1">
-            <div className="flex items-baseline justify-between gap-2 text-xs">
-              <span className="text-muted-foreground">
-                <span
-                  className={cn(
-                    "font-mono text-sm font-semibold tabular-nums text-foreground",
-                    state === "triggered" && "text-emerald-700 dark:text-emerald-300"
-                  )}
-                >
-                  {matching}
-                </span>{" "}
-                of {scopeSize} matching · threshold {rule.threshold}
-              </span>
-              <span className="text-muted-foreground">
-                Cooldown {rule.cooldown_minutes > 0 ? `${rule.cooldown_minutes} min` : "none"}
-              </span>
-            </div>
-            <ProgressBar
-              progress={progress}
-              thresholdPos={thresholdPos}
-              satisfied={state === "triggered"}
-            />
-          </div>
-
-          <RuleMonitorList rule={rule} monitorsById={monitorsById} />
-
-          <div className="text-xs text-muted-foreground">
-            {rule.last_triggered_at ? (
-              <span title={formatDate(rule.last_triggered_at)}>
-                Last triggered {timeAgo(rule.last_triggered_at)}
-              </span>
-            ) : (
-              <span>Never triggered</span>
-            )}
+          <div className="flex shrink-0 items-center gap-0.5">
+            <Button variant="secondary" size="sm" disabled={busy} onClick={onEdit}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+            <IconButton
+              label={rule.enabled ? "Pause" : "Enable"}
+              disabled={busy}
+              onClick={onToggle}
+            >
+              {rule.enabled ? (
+                <BellOff className="h-3.5 w-3.5" />
+              ) : (
+                <Bell className="h-3.5 w-3.5" />
+              )}
+            </IconButton>
+            <IconButton label="Duplicate" disabled={busy} onClick={onDuplicate}>
+              <Copy className="h-3.5 w-3.5" />
+            </IconButton>
+            <IconButton
+              label="Delete"
+              disabled={busy}
+              onClick={onDelete}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </IconButton>
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-wrap gap-2 sm:flex-nowrap">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={onToggle}
-            title={rule.enabled ? "Pause this rule" : "Enable this rule"}
-          >
-            {rule.enabled ? (
-              <>
-                <BellOff className="h-3.5 w-3.5" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Bell className="h-3.5 w-3.5" />
-                Enable
-              </>
-            )}
-          </Button>
-          <Button variant="secondary" size="sm" disabled={busy} onClick={onEdit}>
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={onDuplicate}
-            aria-label={`Duplicate ${rule.name}`}
-            title="Duplicate"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={onDelete}
-            aria-label={`Delete ${rule.name}`}
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0 space-y-1.5">
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={cn(
+                  "font-mono text-2xl font-semibold leading-none tabular-nums",
+                  state === "triggered" && "text-emerald-700 dark:text-emerald-300"
+                )}
+              >
+                {matching}
+              </span>
+              <span className="text-sm text-muted-foreground">/ {scopeSize}</span>
+              <span className="text-xs text-muted-foreground">
+                monitor{scopeSize === 1 ? "" : "s"} {statusText}
+              </span>
+            </div>
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{hint}</div>
+          </div>
+          <div className="hidden text-right text-[11px] text-muted-foreground sm:block">
+            Threshold {rule.threshold} of {scopeText}
+          </div>
+        </div>
+
+        <ProgressBar
+          progress={progress}
+          thresholdPos={thresholdPos}
+          satisfied={state === "triggered"}
+        />
+
+        <RuleMonitorList rule={rule} monitorsById={monitorsById} />
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+          <span>
+            Cooldown {rule.cooldown_minutes > 0 ? `${rule.cooldown_minutes} min` : "none"}
+          </span>
+          <span aria-hidden>·</span>
+          {rule.last_triggered_at ? (
+            <span title={formatDate(rule.last_triggered_at)}>
+              Last triggered {timeAgo(rule.last_triggered_at)}
+            </span>
+          ) : (
+            <span>Never triggered</span>
+          )}
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function IconButton({
+  label,
+  disabled,
+  onClick,
+  className,
+  children
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={className}
+    >
+      {children}
+    </Button>
+  );
+}
+
+function StateDot({ state }: { state: Exclude<RuleFilter, "all"> }) {
+  const cls =
+    state === "triggered"
+      ? "bg-emerald-500 ring-2 ring-emerald-500/20"
+      : state === "armed"
+        ? "bg-primary/70"
+        : "bg-muted-foreground/40";
+  return <span className={cn("h-2 w-2 shrink-0 rounded-full", cls)} aria-hidden="true" />;
 }
 
 function StateBadge({ state }: { state: Exclude<RuleFilter, "all"> }) {
@@ -526,23 +557,35 @@ function RuleMonitorList({
   rule: NotificationRule;
   monitorsById: Map<number, Monitor>;
 }) {
+  const [expanded, setExpanded] = React.useState(false);
+
   if (rule.monitor_ids.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground">
-        Watching <span className="font-medium text-foreground">all monitors</span>.
+      <p className="text-[11px] text-muted-foreground">
+        Watching <span className="font-medium text-foreground">all monitors</span>
       </p>
     );
   }
 
+  const MAX_VISIBLE = 5;
+  // Sort matching monitors first so the most relevant chips show before the overflow.
+  const orderedIds = [...rule.monitor_ids].sort((a, b) => {
+    const am = rule.current_matching_monitor_ids.includes(a) ? 0 : 1;
+    const bm = rule.current_matching_monitor_ids.includes(b) ? 0 : 1;
+    return am - bm;
+  });
+  const visibleIds = expanded ? orderedIds : orderedIds.slice(0, MAX_VISIBLE);
+  const overflow = orderedIds.length - visibleIds.length;
+
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-xs">
-      <span className="text-muted-foreground">Watching:</span>
-      {rule.monitor_ids.map((id) => {
+    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+      <span className="text-muted-foreground">Watching</span>
+      {visibleIds.map((id) => {
         const monitor = monitorsById.get(id);
         if (!monitor) {
           return (
-            <Badge key={id} variant="outline" className="rounded-full">
-              #{id} (missing)
+            <Badge key={id} variant="outline" className="rounded-full text-[11px]">
+              #{id} missing
             </Badge>
           );
         }
@@ -551,18 +594,36 @@ function RuleMonitorList({
           <Link
             key={id}
             to={`/monitors/${id}`}
+            title={monitor.url}
             className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "inline-flex max-w-48 items-center gap-1 truncate rounded-full border px-2 py-0.5 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               matching
                 ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200"
-                : "text-muted-foreground"
+                : "border-border text-muted-foreground"
             )}
           >
             {matching ? <span aria-hidden>✓</span> : null}
-            {monitor.name}
+            <span className="truncate">{monitor.name}</span>
           </Link>
         );
       })}
+      {overflow > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="inline-flex items-center rounded-full border border-dashed border-border px-2 py-0.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          +{overflow} more
+        </button>
+      ) : expanded && orderedIds.length > MAX_VISIBLE ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="inline-flex items-center rounded-full border border-dashed border-border px-2 py-0.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          Show less
+        </button>
+      ) : null}
     </div>
   );
 }
