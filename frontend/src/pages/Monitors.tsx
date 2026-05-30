@@ -288,12 +288,12 @@ export function Monitors() {
             {grouped
               ? grouped.map(([host, hostMonitors]) => (
                   <div key={host} className="space-y-3">
-                    <div className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
-                      <span className="font-mono text-foreground">{host}</span>
-                      <span>
-                        · {hostMonitors.length} {hostMonitors.length === 1 ? "monitor" : "monitors"}
-                      </span>
-                    </div>
+                    {hostMonitors.length > 1 ? (
+                      <div className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+                        <span className="font-mono text-foreground">{host}</span>
+                        <span>· {hostMonitors.length} monitors</span>
+                      </div>
+                    ) : null}
                     <div className="grid gap-3">
                       {hostMonitors.map((monitor) => (
                         <MonitorListCard
@@ -381,20 +381,21 @@ export function Monitors() {
                 {grouped ? (
                   grouped.map(([host, hostMonitors]) => (
                     <tbody key={host} className="not-first-of-type:border-t">
-                      <tr className="bg-muted/40">
-                        <TableCell
-                          colSpan={8}
-                          className="px-4 py-1.5 text-xs font-medium text-muted-foreground"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-foreground">{host}</span>
-                            <span className="text-muted-foreground">
-                              · {hostMonitors.length}{" "}
-                              {hostMonitors.length === 1 ? "monitor" : "monitors"}
-                            </span>
-                          </div>
-                        </TableCell>
-                      </tr>
+                      {hostMonitors.length > 1 ? (
+                        <tr className="bg-muted/40">
+                          <TableCell
+                            colSpan={8}
+                            className="px-4 py-1.5 text-xs font-medium text-muted-foreground"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-foreground">{host}</span>
+                              <span className="text-muted-foreground">
+                                · {hostMonitors.length} monitors
+                              </span>
+                            </div>
+                          </TableCell>
+                        </tr>
+                      ) : null}
                       {hostMonitors.map((monitor) => (
                         <MonitorRow
                           key={monitor.id}
