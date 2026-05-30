@@ -28,6 +28,7 @@ import { NextCheckSummary } from "../components/monitors/NextCheckSummary";
 import { NotificationsCell } from "../components/monitors/NotificationsCell";
 import { ScheduleEditPopover } from "../components/monitors/ScheduleEditPopover";
 import { StockEditPopover } from "../components/monitors/StockEditPopover";
+import { ActionBar, ActionBarSeparator } from "../components/shared/ActionBar";
 import { EmptyState } from "../components/shared/EmptyState";
 import { FilterMenu } from "../components/shared/FilterMenu";
 import { LinkButton } from "../components/shared/LinkButton";
@@ -973,13 +974,10 @@ function BulkActionBar({
   const anyBusy = busy !== null;
   const label = `${count} ${count === 1 ? "monitor" : "monitors"}`;
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
-      <section
-        aria-label="Bulk actions"
-        className="pointer-events-auto flex flex-wrap items-center gap-1 rounded-lg border bg-card p-1.5 pl-3 shadow-lg"
-      >
+    <>
+      <ActionBar ariaLabel="Bulk actions">
         <span className="text-sm font-medium tabular-nums">{label} selected</span>
-        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+        <ActionBarSeparator />
         <Button variant="ghost" size="sm" disabled={anyBusy} onClick={onEnable}>
           {busy === "enable" ? <LoaderCircle className="animate-spin" /> : <Power />}
           Enable
@@ -1002,7 +1000,7 @@ function BulkActionBar({
           {busy === "delete" ? <LoaderCircle className="animate-spin" /> : <Trash2 />}
           Delete
         </Button>
-        <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+        <ActionBarSeparator />
         <Button
           variant="ghost"
           size="icon-sm"
@@ -1012,7 +1010,7 @@ function BulkActionBar({
         >
           <X />
         </Button>
-      </section>
+      </ActionBar>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
@@ -1036,6 +1034,6 @@ function BulkActionBar({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
