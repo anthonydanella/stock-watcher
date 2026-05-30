@@ -173,6 +173,8 @@ def settings(tmp_path: Path, attempt_retention_limit: int = 5000) -> Settings:
         attempt_retention_limit=attempt_retention_limit,
         default_ntfy_server="https://ntfy.sh",
         default_ntfy_topic="",
+        ntfy_max_attempts=3,
+        ntfy_retry_backoff_seconds=0.5,
         llm_api_key="",
         llm_html_char_limit=200_000,
     )

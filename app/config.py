@@ -26,6 +26,16 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _float_env(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 @dataclass(frozen=True)
 class Settings:
     data_dir: Path
@@ -36,6 +46,8 @@ class Settings:
     attempt_retention_limit: int
     default_ntfy_server: str
     default_ntfy_topic: str
+    ntfy_max_attempts: int
+    ntfy_retry_backoff_seconds: float
     llm_api_key: str
     llm_html_char_limit: int
 
@@ -54,6 +66,8 @@ def load_settings() -> Settings:
         attempt_retention_limit=max(100, _int_env("ATTEMPT_RETENTION_LIMIT", 5000)),
         default_ntfy_server=os.getenv("NTFY_SERVER", "https://ntfy.sh"),
         default_ntfy_topic=os.getenv("NTFY_TOPIC", ""),
+        ntfy_max_attempts=max(1, _int_env("NTFY_MAX_ATTEMPTS", 3)),
+        ntfy_retry_backoff_seconds=max(0.0, _float_env("NTFY_RETRY_BACKOFF_SECONDS", 0.5)),
         llm_api_key=os.getenv("LLM_API_KEY", "").strip(),
         llm_html_char_limit=max(4_000, _int_env("LLM_HTML_CHAR_LIMIT", 200_000)),
     )

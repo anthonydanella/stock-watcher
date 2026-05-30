@@ -124,7 +124,10 @@ class StockChecker:
     def __init__(self, repo: Repository, settings: Settings, ntfy: NtfyClient | None = None):
         self.repo = repo
         self.settings = settings
-        self.ntfy = ntfy or NtfyClient()
+        self.ntfy = ntfy or NtfyClient(
+            max_attempts=settings.ntfy_max_attempts,
+            backoff_seconds=settings.ntfy_retry_backoff_seconds,
+        )
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._browser_lock = asyncio.Lock()
