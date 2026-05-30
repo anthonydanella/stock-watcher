@@ -19,7 +19,8 @@ export const blankMonitor: Partial<Monitor> = {
   notifications_enabled: true,
   notify_on_stock_change: true,
   notify_on_error: true,
-  notify_on_challenge: true
+  notify_on_challenge: true,
+  tags: []
 };
 
 export function isFullMonitor(monitor: Partial<Monitor>): monitor is Monitor {
@@ -52,6 +53,7 @@ export function monitorCopyPayload(monitor: Monitor): Partial<Monitor> {
     notifications_enabled: monitor.notifications_enabled,
     notify_on_stock_change: monitor.notify_on_stock_change,
     notify_on_error: monitor.notify_on_error,
-    notify_on_challenge: monitor.notify_on_challenge
+    notify_on_challenge: monitor.notify_on_challenge,
+    tags: [...monitor.tags]
   };
 }

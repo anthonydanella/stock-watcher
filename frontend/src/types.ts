@@ -36,6 +36,7 @@ export type Monitor = {
   notify_on_stock_change: boolean;
   notify_on_error: boolean;
   notify_on_challenge: boolean;
+  tags: string[];
 };
 
 export type CheckAttempt = {

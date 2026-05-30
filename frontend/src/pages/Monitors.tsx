@@ -11,6 +11,7 @@ import {
   Plus,
   Power,
   Search,
+  Tag,
   Trash2,
   X
 } from "lucide-react";
@@ -32,6 +33,7 @@ import { FilterMenu } from "../components/shared/FilterMenu";
 import { LinkButton } from "../components/shared/LinkButton";
 import { PageHeader } from "../components/shared/PageHeader";
 import { MonitorListSkeleton } from "../components/shared/Skeletons";
+import { TagChips } from "../components/shared/TagChips";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +65,9 @@ import type { Monitor } from "../types";
 
 type SortKey = "name" | "status" | "stock" | "last_checked" | "next_check";
 type SortDir = "asc" | "desc";
+type GroupMode = "none" | "host" | "tag";
+
+const UNTAGGED_LABEL = "Untagged";
 
 const STATUS_FILTERS = [
   { id: "all", label: "All" },
@@ -112,7 +117,8 @@ export function Monitors() {
   const [enabledFilter, setEnabledFilter] = React.useState<EnabledFilter>("all");
   const [sortKey, setSortKey] = React.useState<SortKey>("name");
   const [sortDir, setSortDir] = React.useState<SortDir>("asc");
-  const [groupByHost, setGroupByHost] = React.useState(true);
+  const [groupMode, setGroupMode] = React.useState<GroupMode>("host");
+  const [tagFilter, setTagFilter] = React.useState<string>("all");
   const [selected, setSelected] = React.useState<Set<number>>(() => new Set());
   const [bulkBusy, setBulkBusy] = React.useState<"enable" | "pause" | "run" | "delete" | null>(
     null
@@ -192,6 +198,27 @@ export function Monitors() {
     return { all: monitors.length, enabled, disabled, cooling };
   }, [monitors]);
 
+  const allTags = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const monitor of monitors) {
+      for (const tag of monitor.tags) set.add(tag);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [monitors]);
+
+  const tagCounts = React.useMemo(() => {
+    const counts: Record<string, number> = { all: monitors.length };
+    for (const monitor of monitors) {
+      for (const tag of monitor.tags) counts[tag] = (counts[tag] ?? 0) + 1;
+    }
+    return counts;
+  }, [monitors]);
+
+  const tagOptions = React.useMemo(
+    () => [{ id: "all", label: "All tags" }, ...allTags.map((tag) => ({ id: tag, label: tag }))],
+    [allTags]
+  );
+
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     return monitors.filter((monitor) => {
@@ -205,9 +232,10 @@ export function Monitors() {
       if (enabledFilter === "disabled" && monitor.enabled) return false;
       if (enabledFilter === "cooling" && (!monitor.enabled || !isCoolingDown(monitor)))
         return false;
+      if (tagFilter !== "all" && !monitor.tags.includes(tagFilter)) return false;
       return true;
     });
-  }, [monitors, query, statusFilter, enabledFilter]);
+  }, [monitors, query, statusFilter, enabledFilter, tagFilter]);
 
   const sorted = React.useMemo(() => {
     const direction = sortDir === "asc" ? 1 : -1;
@@ -248,17 +276,36 @@ export function Monitors() {
     return list;
   }, [filtered, sortKey, sortDir]);
 
-  const grouped = React.useMemo(() => {
-    if (!groupByHost) return null;
-    const map = new Map<string, Monitor[]>();
-    for (const monitor of sorted) {
-      const host = hostFromUrl(monitor.url) || "(no host)";
-      const list = map.get(host);
-      if (list) list.push(monitor);
-      else map.set(host, [monitor]);
+  const grouped = React.useMemo<[string, Monitor[]][] | null>(() => {
+    if (groupMode === "none") return null;
+    if (groupMode === "host") {
+      const map = new Map<string, Monitor[]>();
+      for (const monitor of sorted) {
+        const host = hostFromUrl(monitor.url) || "(no host)";
+        const list = map.get(host);
+        if (list) list.push(monitor);
+        else map.set(host, [monitor]);
+      }
+      return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
     }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [sorted, groupByHost]);
+    // Group by tag: a monitor appears under each of its tags; untagged collect last.
+    const map = new Map<string, Monitor[]>();
+    const untagged: Monitor[] = [];
+    for (const monitor of sorted) {
+      if (!monitor.tags.length) {
+        untagged.push(monitor);
+        continue;
+      }
+      for (const tag of monitor.tags) {
+        const list = map.get(tag);
+        if (list) list.push(monitor);
+        else map.set(tag, [monitor]);
+      }
+    }
+    const entries = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+    if (untagged.length) entries.push([UNTAGGED_LABEL, untagged]);
+    return entries;
+  }, [sorted, groupMode]);
 
   const selectedMonitors = React.useMemo(
     () => monitors.filter((monitor) => selected.has(monitor.id)),
@@ -350,11 +397,13 @@ export function Monitors() {
     }
   }
 
-  const hasFilters = query !== "" || statusFilter !== "all" || enabledFilter !== "all";
+  const hasFilters =
+    query !== "" || statusFilter !== "all" || enabledFilter !== "all" || tagFilter !== "all";
   function clearFilters() {
     setQuery("");
     setStatusFilter("all");
     setEnabledFilter("all");
+    setTagFilter("all");
   }
 
   return (
@@ -385,22 +434,33 @@ export function Monitors() {
             totalCount={monitors.length}
             hasFilters={hasFilters}
             onClear={clearFilters}
-            groupByHost={groupByHost}
-            onGroupByHostChange={setGroupByHost}
+            groupMode={groupMode}
+            onGroupModeChange={setGroupMode}
+            tagFilter={tagFilter}
+            onTagFilterChange={setTagFilter}
+            tagOptions={tagOptions}
+            tagCounts={tagCounts}
           />
 
           <div className="space-y-5 lg:hidden">
             {grouped
-              ? grouped.map(([host, hostMonitors]) => (
-                  <div key={host} className="space-y-3">
-                    {hostMonitors.length > 1 ? (
+              ? grouped.map(([groupLabel, groupMonitors]) => (
+                  <div key={groupLabel} className="space-y-3">
+                    {groupMode === "tag" || groupMonitors.length > 1 ? (
                       <div className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
-                        <span className="font-mono text-foreground">{host}</span>
-                        <span>· {hostMonitors.length} monitors</span>
+                        {groupMode === "tag" ? (
+                          <Tag className="h-3 w-3 shrink-0" aria-hidden="true" />
+                        ) : null}
+                        <span
+                          className={cn("text-foreground", groupMode === "host" && "font-mono")}
+                        >
+                          {groupLabel}
+                        </span>
+                        <span>· {pluralize(groupMonitors.length)}</span>
                       </div>
                     ) : null}
                     <div className="grid gap-3">
-                      {hostMonitors.map((monitor) => (
+                      {groupMonitors.map((monitor) => (
                         <MonitorListCard
                           key={monitor.id}
                           monitor={monitor}
@@ -496,24 +556,37 @@ export function Monitors() {
                   </tr>
                 </thead>
                 {grouped ? (
-                  grouped.map(([host, hostMonitors]) => (
-                    <tbody key={host} className="not-first-of-type:border-t">
-                      {hostMonitors.length > 1 ? (
+                  grouped.map(([groupLabel, groupMonitors]) => (
+                    <tbody key={groupLabel} className="not-first-of-type:border-t">
+                      {groupMode === "tag" || groupMonitors.length > 1 ? (
                         <tr className="bg-muted/40">
                           <TableCell
                             colSpan={9}
                             className="px-4 py-1.5 text-xs font-medium text-muted-foreground"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-foreground">{host}</span>
+                              {groupMode === "tag" ? (
+                                <Tag
+                                  className="h-3 w-3 shrink-0 text-muted-foreground"
+                                  aria-hidden="true"
+                                />
+                              ) : null}
+                              <span
+                                className={cn(
+                                  "text-foreground",
+                                  groupMode === "host" && "font-mono"
+                                )}
+                              >
+                                {groupLabel}
+                              </span>
                               <span className="text-muted-foreground">
-                                · {hostMonitors.length} monitors
+                                · {pluralize(groupMonitors.length)}
                               </span>
                             </div>
                           </TableCell>
                         </tr>
                       ) : null}
-                      {hostMonitors.map((monitor) => (
+                      {groupMonitors.map((monitor) => (
                         <MonitorRow
                           key={monitor.id}
                           monitor={monitor}
@@ -588,8 +661,12 @@ function MonitorsToolbar({
   totalCount,
   hasFilters,
   onClear,
-  groupByHost,
-  onGroupByHostChange
+  groupMode,
+  onGroupModeChange,
+  tagFilter,
+  onTagFilterChange,
+  tagOptions,
+  tagCounts
 }: {
   query: string;
   onQueryChange: (value: string) => void;
@@ -603,8 +680,12 @@ function MonitorsToolbar({
   totalCount: number;
   hasFilters: boolean;
   onClear: () => void;
-  groupByHost: boolean;
-  onGroupByHostChange: (value: boolean) => void;
+  groupMode: GroupMode;
+  onGroupModeChange: (value: GroupMode) => void;
+  tagFilter: string;
+  onTagFilterChange: (value: string) => void;
+  tagOptions: { id: string; label: string }[];
+  tagCounts: Record<string, number>;
 }) {
   const countLabel =
     visibleCount === totalCount
@@ -640,6 +721,15 @@ function MonitorsToolbar({
           onChange={onEnabledFilterChange}
           counts={enabledCounts}
         />
+        {tagOptions.length > 1 ? (
+          <FilterMenu
+            label="Tag"
+            options={tagOptions}
+            value={tagFilter}
+            onChange={onTagFilterChange}
+            counts={tagCounts}
+          />
+        ) : null}
         {hasFilters ? (
           <Button variant="ghost" size="sm" onClick={onClear}>
             <X />
@@ -653,20 +743,24 @@ function MonitorsToolbar({
           variant="outline"
           size="sm"
           spacing={0}
-          value={[groupByHost ? "grouped" : "flat"]}
+          value={[groupMode]}
           onValueChange={(value) => {
             const next = value[0];
-            if (next) onGroupByHostChange(next === "grouped");
+            if (next) onGroupModeChange(next as GroupMode);
           }}
           aria-label="Monitor view"
         >
-          <ToggleGroupItem value="flat" aria-label="Flat list" title="Flat list">
+          <ToggleGroupItem value="none" aria-label="Flat list" title="Flat list">
             <List />
             List
           </ToggleGroupItem>
-          <ToggleGroupItem value="grouped" aria-label="Group by host" title="Group by host">
+          <ToggleGroupItem value="host" aria-label="Group by host" title="Group by host">
             <Layers />
-            Grouped
+            Host
+          </ToggleGroupItem>
+          <ToggleGroupItem value="tag" aria-label="Group by tag" title="Group by tag">
+            <Tag />
+            Tag
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
@@ -760,6 +854,7 @@ function MonitorRow({
               {monitor.name}
             </Link>
             <div className="truncate text-xs text-muted-foreground">{monitor.url}</div>
+            <TagChips tags={monitor.tags} className="mt-1" />
           </div>
           {monitor.last_error ? (
             <Tooltip>

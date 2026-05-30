@@ -10,6 +10,7 @@ import {
 import { isCoolingDown } from "../../lib/monitor";
 import { cn } from "../../lib/utils";
 import type { Monitor } from "../../types";
+import { TagChips } from "../shared/TagChips";
 import { Alert } from "../ui/alert";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader } from "../ui/card";
@@ -118,6 +119,7 @@ export function MonitorListCard({
       </CardHeader>
 
       <CardContent className="space-y-3">
+        <TagChips tags={monitor.tags} />
         {isQuantity ? (
           <StockEditPopover monitor={monitor} onSaved={onPatch}>
             <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
