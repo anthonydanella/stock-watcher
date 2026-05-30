@@ -1,5 +1,15 @@
-import { Activity, Bell, ChevronRight, Clock, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  BellOff,
+  ChevronRight,
+  Clock,
+  Plus,
+  RefreshCw,
+  ShieldAlert
+} from "lucide-react";
 import React from "react";
+import { Link } from "react-router-dom";
 
 import { EventsTable } from "../components/events/EventsTable";
 import { MonitorCards } from "../components/monitors/MonitorCards";
@@ -12,6 +22,7 @@ import { SectionHeader } from "../components/shared/SectionHeader";
 import { Alert } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { useDashboardData } from "../hooks/useDashboardData";
+import { timeAgo, warningAlertClass } from "../lib/format";
 import type { Monitor } from "../types";
 
 const ATTENTION_STATUSES = new Set(["in_stock", "low_stock", "error", "challenge"]);
@@ -23,7 +34,8 @@ function needsAttention(monitor: Monitor) {
 }
 
 export function Dashboard() {
-  const { monitors, events, schedulerStatus, refresh, busy, error } = useDashboardData();
+  const { monitors, events, notificationFailures, schedulerStatus, refresh, busy, error } =
+    useDashboardData();
   const counts = React.useMemo(
     () => ({
       total: monitors.length,
@@ -51,6 +63,29 @@ export function Dashboard() {
         </LinkButton>
       </PageHeader>
       {error ? <Alert variant="destructive">{error}</Alert> : null}
+      {notificationFailures.count > 0 ? (
+        <Alert className={warningAlertClass}>
+          <BellOff className="h-4 w-4" />
+          <p>
+            <span className="font-medium">
+              {notificationFailures.count === 1
+                ? "1 notification failed to deliver"
+                : `${notificationFailures.count} notifications failed to deliver`}
+            </span>{" "}
+            in the last 24h, even after automatic retries
+            {notificationFailures.lastAt ? ` — last ${timeAgo(notificationFailures.lastAt)}` : ""}.
+            Check the ntfy server and topic in{" "}
+            <Link to="/settings" className="font-medium underline underline-offset-2">
+              Settings
+            </Link>{" "}
+            or{" "}
+            <Link to="/events" className="font-medium underline underline-offset-2">
+              review the events
+            </Link>
+            .
+          </p>
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border pb-3">
         <Metric title="Monitors" value={counts.total} icon={<Activity className="h-3.5 w-3.5" />} />
         <Metric title="In stock" value={counts.inStock} icon={<Bell className="h-3.5 w-3.5" />} />
