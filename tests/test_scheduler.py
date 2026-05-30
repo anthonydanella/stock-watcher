@@ -72,7 +72,9 @@ def test_monitor_update_rejects_unknown_columns(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="Unknown monitor update field"):
         repository.update_monitor(monitor_id, {"name = 'bad'": "Bad"})
 
-    assert repository.get_monitor(monitor_id).name == "Test"
+    reloaded = repository.get_monitor(monitor_id)
+    assert reloaded is not None
+    assert reloaded.name == "Test"
 
 
 def test_repository_uses_distinct_connections_per_thread(tmp_path: Path) -> None:

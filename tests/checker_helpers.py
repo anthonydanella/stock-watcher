@@ -4,11 +4,13 @@ from app.checker import FetchResult, StockChecker
 from app.config import Settings
 from app.db import connect, init_db
 from app.models import Monitor
+from app.ntfy import NtfyClient
 from app.repository import Repository
 
 
-class FakeNtfy:
+class FakeNtfy(NtfyClient):
     def __init__(self) -> None:
+        super().__init__()
         self.messages: list[tuple[str, str]] = []
 
     async def send(self, settings, monitor, title, message, tags="package") -> bool:  # noqa: ANN001
@@ -16,18 +18,18 @@ class FakeNtfy:
         return True
 
 
-class BrokenNtfy:
+class BrokenNtfy(NtfyClient):
     async def send(self, settings, monitor, title, message, tags="package") -> bool:  # noqa: ANN001
         raise RuntimeError("ntfy is unavailable")
 
 
-class RejectingNtfy:
+class RejectingNtfy(NtfyClient):
     async def send(self, settings, monitor, title, message, tags="package") -> bool:  # noqa: ANN001
         return False
 
 
 class FakeChecker(StockChecker):
-    def __init__(self, repo: Repository, settings: Settings, ntfy: FakeNtfy, result: FetchResult):
+    def __init__(self, repo: Repository, settings: Settings, ntfy: NtfyClient, result: FetchResult):
         super().__init__(repo, settings, ntfy)
         self.result = result
 
@@ -40,7 +42,7 @@ class FailingChecker(StockChecker):
         self,
         repo: Repository,
         settings: Settings,
-        ntfy: FakeNtfy,
+        ntfy: NtfyClient,
         exc: Exception | None = None,
     ):
         super().__init__(repo, settings, ntfy)
@@ -55,7 +57,7 @@ class BrowserModeChecker(StockChecker):
         self,
         repo: Repository,
         settings: Settings,
-        ntfy: FakeNtfy,
+        ntfy: NtfyClient,
         browser_result: FetchResult,
     ):
         super().__init__(repo, settings, ntfy)
@@ -100,6 +102,13 @@ def repo(tmp_path: Path) -> Repository:
     conn = connect(test_settings.database_path)
     init_db(conn)
     return Repository(conn, test_settings)
+
+
+def require_monitor(repository: Repository, monitor_id: int) -> Monitor:
+    """Fetch a monitor that the test knows exists, narrowing away the Optional."""
+    monitor = repository.get_monitor(monitor_id)
+    assert monitor is not None
+    return monitor
 
 
 def make_monitor() -> Monitor:

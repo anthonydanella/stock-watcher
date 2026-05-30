@@ -11,6 +11,7 @@ from tests.checker_helpers import (
     FakeNtfy,
     make_monitor,
     repo,
+    require_monitor,
     settings,
 )
 
@@ -62,7 +63,7 @@ async def test_rule_lab_reports_fetch_failures_in_band(tmp_path: Path) -> None:
 async def test_test_rule_reports_http_failures_without_matching_error_pages(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -80,7 +81,7 @@ async def test_test_rule_reports_http_failures_without_matching_error_pages(tmp_
 async def test_test_rule_reports_challenge_pages_without_matching_content(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
