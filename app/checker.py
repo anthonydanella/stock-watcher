@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import random
 import time
 from base64 import b64encode
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from app.challenges import is_challenge_response
 from app.config import Settings
@@ -36,6 +38,9 @@ from app.repository import Repository
 from app.rules import RuleResult, evaluate_rule, evaluate_rule_diagnostics
 from app.scheduler import calculate_cooldown, calculate_next_check
 from app.screenshots import save_screenshot
+
+if TYPE_CHECKING:
+    from playwright.async_api import Browser, Playwright
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121 Safari/537.36",
@@ -120,6 +125,9 @@ class StockChecker:
         self.repo = repo
         self.settings = settings
         self.ntfy = ntfy or NtfyClient()
+        self._playwright: Playwright | None = None
+        self._browser: Browser | None = None
+        self._browser_lock = asyncio.Lock()
 
     async def check_monitor(self, monitor: Monitor) -> None:
         started = time.perf_counter()
@@ -268,54 +276,86 @@ class StockChecker:
     async def fetch(self, monitor: Monitor) -> FetchResult:
         return await self._fetch_browser(monitor)
 
-    async def _fetch_browser(self, monitor: Monitor) -> FetchResult:
+    async def _get_browser(self) -> Browser:
+        # One persistent Chromium per checker; each check still runs in a fresh context
+        # (its own cookies, storage, and user agent) so monitors stay isolated. Launching a
+        # full browser per check was the dominant cost when many monitors run together.
         try:
             from playwright.async_api import async_playwright
         except ImportError as exc:
             raise RuntimeError("Playwright is not installed. Install the browser extra.") from exc
 
-        async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=True)
+        async with self._browser_lock:
+            if self._browser is not None and self._browser.is_connected():
+                return self._browser
+            # A previous browser may have crashed or been closed out from under us; drop the
+            # stale handle and relaunch so one bad session does not wedge every later check.
+            self._browser = None
+            if self._playwright is None:
+                self._playwright = await async_playwright().start()
+            self._browser = await self._playwright.chromium.launch(headless=True)
+            return self._browser
+
+    async def _fetch_browser(self, monitor: Monitor) -> FetchResult:
+        browser = await self._get_browser()
+        context = await browser.new_context(
+            user_agent=self._user_agent(monitor),
+            viewport={"width": 1280, "height": 720},
+        )
+        try:
+            page = await context.new_page()
+            response = await page.goto(
+                monitor.url,
+                wait_until="domcontentloaded",
+                timeout=monitor.timeout_seconds * 1000,
+            )
+            # Many product pages hydrate stock info via deferred XHR after DOMContentLoaded.
+            # Wait until the network goes quiet so the LLM and rules see the real DOM, not the
+            # shell. Bounded by the monitor's own timeout — networkidle never blocks forever.
             try:
-                page = await browser.new_page(
-                    user_agent=self._user_agent(monitor),
-                    viewport={"width": 1280, "height": 720},
+                await page.wait_for_load_state(
+                    "networkidle", timeout=monitor.timeout_seconds * 1000
                 )
-                response = await page.goto(
-                    monitor.url,
-                    wait_until="domcontentloaded",
-                    timeout=monitor.timeout_seconds * 1000,
-                )
-                # Many product pages hydrate stock info via deferred XHR after DOMContentLoaded.
-                # Wait until the network goes quiet so the LLM and rules see the real DOM, not the
-                # shell. Bounded by the monitor's own timeout — networkidle never blocks forever.
+            except Exception:  # noqa: BLE001 - some sites long-poll; fall through with what we have
+                pass
+            await page.wait_for_timeout(random.randint(500, 1800))
+            content = await page.content()
+            headers = await response.all_headers() if response else {}
+            status_code = response.status if response else None
+            screenshot: bytes | None = None
+            screenshot_error = ""
+            try:
+                await self._prepare_page_for_screenshot(page)
+                screenshot = await page.screenshot(type="jpeg", quality=80, full_page=False)
+            except Exception as exc:  # noqa: BLE001 - screenshot failures should not fail stock checks
+                screenshot_error = str(exc)
+            return FetchResult(
+                status_code=status_code,
+                content=content,
+                content_type=headers.get("content-type", ""),
+                headers=headers,
+                screenshot=screenshot,
+                screenshot_error=screenshot_error,
+            )
+        finally:
+            await context.close()
+
+    async def aclose(self) -> None:
+        # Tear down the persistent browser and Playwright driver. Call from the app's
+        # shutdown path so the Chromium process and its pipe do not leak across restarts.
+        async with self._browser_lock:
+            if self._browser is not None:
                 try:
-                    await page.wait_for_load_state(
-                        "networkidle", timeout=monitor.timeout_seconds * 1000
-                    )
-                except Exception:  # noqa: BLE001 - some sites long-poll; fall through with what we have
+                    await self._browser.close()
+                except Exception:  # noqa: BLE001 - shutdown is best effort
                     pass
-                await page.wait_for_timeout(random.randint(500, 1800))
-                content = await page.content()
-                headers = await response.all_headers() if response else {}
-                status_code = response.status if response else None
-                screenshot: bytes | None = None
-                screenshot_error = ""
+                self._browser = None
+            if self._playwright is not None:
                 try:
-                    await self._prepare_page_for_screenshot(page)
-                    screenshot = await page.screenshot(type="jpeg", quality=80, full_page=False)
-                except Exception as exc:  # noqa: BLE001 - screenshot failures should not fail stock checks
-                    screenshot_error = str(exc)
-                return FetchResult(
-                    status_code=status_code,
-                    content=content,
-                    content_type=headers.get("content-type", ""),
-                    headers=headers,
-                    screenshot=screenshot,
-                    screenshot_error=screenshot_error,
-                )
-            finally:
-                await browser.close()
+                    await self._playwright.stop()
+                except Exception:  # noqa: BLE001 - shutdown is best effort
+                    pass
+                self._playwright = None
 
     async def _prepare_page_for_screenshot(self, page) -> None:  # noqa: ANN001
         try:

@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     yield
     await scheduler.stop()
+    await checker.aclose()
 
 
 app = FastAPI(title="Stock Watcher", lifespan=lifespan)
