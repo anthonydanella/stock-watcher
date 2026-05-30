@@ -511,7 +511,7 @@ export function Monitors() {
                         aria-label="Select all monitors"
                       />
                     </TableHead>
-                    <TableHead className="w-20">Preview</TableHead>
+                    <TableHead className="w-24">Preview</TableHead>
                     <SortableHead
                       label="Monitor"
                       sortKey="name"
@@ -841,7 +841,7 @@ function MonitorRow({
           aria-label={`Select ${monitor.name}`}
         />
       </TableCell>
-      <TableCell className="w-20 py-2">
+      <TableCell className="w-24 py-2">
         <MonitorScreenshot monitor={monitor} compact />
       </TableCell>
       <TableCell className="min-w-0 py-2">
