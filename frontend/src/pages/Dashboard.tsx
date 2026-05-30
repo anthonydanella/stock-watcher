@@ -23,6 +23,7 @@ import { Alert } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { timeAgo, warningAlertClass } from "../lib/format";
+import { cn } from "../lib/utils";
 import type { Monitor } from "../types";
 
 const ATTENTION_STATUSES = new Set(["in_stock", "low_stock", "error", "challenge"]);
@@ -54,7 +55,7 @@ export function Dashboard() {
         description="Current stock status, schedule health, and recent activity."
       >
         <Button variant="outline" disabled={busy} onClick={() => void refresh()}>
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={cn("h-4 w-4", busy && "animate-spin")} />
           {busy ? "Refreshing" : "Refresh"}
         </Button>
         <LinkButton to="/monitors/new">
@@ -88,13 +89,24 @@ export function Dashboard() {
       ) : null}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border pb-3">
         <Metric title="Monitors" value={counts.total} icon={<Activity className="h-3.5 w-3.5" />} />
-        <Metric title="In stock" value={counts.inStock} icon={<Bell className="h-3.5 w-3.5" />} />
+        <Metric
+          title="In stock"
+          value={counts.inStock}
+          icon={<Bell className="h-3.5 w-3.5" />}
+          accent={counts.inStock > 0 ? "emerald" : undefined}
+        />
         <Metric
           title="Challenges"
           value={counts.challenge}
           icon={<ShieldAlert className="h-3.5 w-3.5" />}
+          accent={counts.challenge > 0 ? "violet" : undefined}
         />
-        <Metric title="Errors" value={counts.errors} icon={<Clock className="h-3.5 w-3.5" />} />
+        <Metric
+          title="Errors"
+          value={counts.errors}
+          icon={<Clock className="h-3.5 w-3.5" />}
+          accent={counts.errors > 0 ? "amber" : undefined}
+        />
       </div>
       <section className="space-y-3" aria-labelledby="dashboard-attention">
         <SectionHeader id="dashboard-attention" title="Needs attention">
