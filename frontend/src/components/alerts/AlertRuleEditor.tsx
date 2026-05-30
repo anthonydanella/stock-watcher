@@ -405,5 +405,5 @@ function buildSummary(draft: NotificationRuleInput, totalMonitors: number): stri
     draft.cooldown_minutes > 0
       ? `, then wait ${draft.cooldown_minutes} minute${draft.cooldown_minutes === 1 ? "" : "s"} before re-firing.`
       : ".";
-  return `Notify when ${draft.threshold} or more of ${scope} ${statuses.length === 1 ? "is" : "are in"} ${statusText}${cooldown}`;
+  return `Notify when ${draft.threshold} or more of ${scope} ${statuses.length === 1 ? "is" : "are"} ${statusText}${cooldown}`;
 }
