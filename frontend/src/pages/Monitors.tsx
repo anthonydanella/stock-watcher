@@ -33,6 +33,7 @@ import { EmptyState } from "../components/shared/EmptyState";
 import { FilterMenu } from "../components/shared/FilterMenu";
 import { LinkButton } from "../components/shared/LinkButton";
 import { PageHeader } from "../components/shared/PageHeader";
+import { PanelCard } from "../components/shared/PanelCard";
 import { MonitorListSkeleton } from "../components/shared/Skeletons";
 import { TagChips } from "../components/shared/TagChips";
 import {
@@ -47,7 +48,7 @@ import {
 } from "../components/ui/alert-dialog";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
+import { CardContent } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
 import { Table, TableCell, TableHead } from "../components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
@@ -499,7 +500,7 @@ export function Monitors() {
             ) : null}
           </div>
 
-          <Card className="hidden min-w-0 overflow-hidden rounded-md border border-border py-0 shadow-sm ring-0 lg:block">
+          <PanelCard className="hidden min-w-0 overflow-hidden py-0 lg:block">
             <CardContent className="p-0">
               <Table className="table-fixed">
                 <thead className="border-b bg-muted/30">
@@ -630,7 +631,7 @@ export function Monitors() {
                 ) : null}
               </Table>
             </CardContent>
-          </Card>
+          </PanelCard>
 
           {selectedMonitors.length > 0 ? (
             <BulkActionBar

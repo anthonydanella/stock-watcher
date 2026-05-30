@@ -4,8 +4,9 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { formatDate, formatDuration, statusBadgeClass } from "../../../lib/format";
 import { cn } from "../../../lib/utils";
 import type { CheckAttempt } from "../../../types";
+import { PanelCard } from "../../shared/PanelCard";
 import { Badge } from "../../ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "../../ui/chart";
 import { getStatusDetails } from "./constants";
 
@@ -56,7 +57,7 @@ export function ResponseTimeCard({
   }, [chart.maxDuration]);
 
   return (
-    <Card className="min-w-0 overflow-visible rounded-md border border-border shadow-sm ring-0">
+    <PanelCard className="min-w-0 overflow-visible">
       <CardHeader>
         <CardTitle> Response time</CardTitle>
       </CardHeader>
@@ -160,7 +161,7 @@ export function ResponseTimeCard({
             : `Response time trend chart with ${data.length} data points.`}
         </div>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }
 

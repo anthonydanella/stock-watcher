@@ -4,8 +4,9 @@ import React from "react";
 import { api } from "../../../api";
 import type { Monitor } from "../../../types";
 import { FormField } from "../../shared/FormFields";
+import { PanelCard } from "../../shared/PanelCard";
 import { Button } from "../../ui/button";
-import { Card, CardContent, CardHeader } from "../../ui/card";
+import { CardContent, CardHeader } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { ChoiceGrid } from "./ChoiceGrid";
@@ -65,7 +66,7 @@ export function RuleSection({
   }, []);
 
   return (
-    <Card className="rounded-md border border-border shadow-sm ring-0">
+    <PanelCard>
       <CardHeader>
         <SectionTitle
           icon={SearchCheck}
@@ -247,6 +248,6 @@ export function RuleSection({
           </p>
         </div>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }

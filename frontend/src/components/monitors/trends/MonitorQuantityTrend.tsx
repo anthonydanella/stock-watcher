@@ -5,8 +5,9 @@ import { useIsMobile } from "../../../hooks/use-mobile";
 import { formatDate, statusBadgeClass, statusLabel } from "../../../lib/format";
 import { cn } from "../../../lib/utils";
 import type { CheckAttempt } from "../../../types";
+import { PanelCard } from "../../shared/PanelCard";
 import { Badge } from "../../ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "../../ui/chart";
 import { DESKTOP_DOT_THRESHOLD, MAX_ATTEMPTS, MOBILE_DOT_THRESHOLD } from "./constants";
 
@@ -72,7 +73,7 @@ export function MonitorQuantityTrend({
   }
 
   return (
-    <Card className="min-w-0 overflow-visible rounded-md border border-border shadow-sm ring-0">
+    <PanelCard className="min-w-0 overflow-visible">
       <CardHeader>
         <CardTitle>Quantity over time</CardTitle>
       </CardHeader>
@@ -182,7 +183,7 @@ export function MonitorQuantityTrend({
           </AreaChart>
         </ChartContainer>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }
 

@@ -1,8 +1,9 @@
 import { eventLabel, formatDate } from "../../lib/format";
 import type { EventRow } from "../../types";
 import { EmptyState } from "../shared/EmptyState";
+import { PanelCard } from "../shared/PanelCard";
 import { Badge } from "../ui/badge";
-import { Card, CardContent } from "../ui/card";
+import { CardContent } from "../ui/card";
 import { Table, TableCell, TableHead } from "../ui/table";
 
 export function EventsTable({ events }: { events: EventRow[] }) {
@@ -10,10 +11,7 @@ export function EventsTable({ events }: { events: EventRow[] }) {
     <>
       <div className="grid gap-3 lg:hidden">
         {events.map((event) => (
-          <Card
-            key={event.id}
-            className="min-w-0 overflow-hidden rounded-md border border-border shadow-sm ring-0"
-          >
+          <PanelCard key={event.id} className="min-w-0 overflow-hidden">
             <CardContent>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -24,11 +22,11 @@ export function EventsTable({ events }: { events: EventRow[] }) {
               </div>
               <p className="break-words text-sm">{event.message}</p>
             </CardContent>
-          </Card>
+          </PanelCard>
         ))}
         {!events.length ? <EmptyState message="No events recorded." /> : null}
       </div>
-      <Card className="hidden min-w-0 overflow-hidden rounded-md border border-border shadow-sm ring-0 lg:block">
+      <PanelCard className="hidden min-w-0 overflow-hidden lg:block">
         <CardContent>
           <Table>
             <thead>
@@ -66,7 +64,7 @@ export function EventsTable({ events }: { events: EventRow[] }) {
             </tbody>
           </Table>
         </CardContent>
-      </Card>
+      </PanelCard>
     </>
   );
 }

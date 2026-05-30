@@ -7,12 +7,13 @@ import {
 } from "../../lib/format";
 import type { Monitor } from "../../types";
 import { Info } from "../shared/Info";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { PanelCard } from "../shared/PanelCard";
+import { CardContent, CardHeader, CardTitle } from "../ui/card";
 
 export function MonitorState({ monitor }: { monitor: Monitor }) {
   const isQuantity = monitor.stock_mode === "quantity";
   return (
-    <Card className="rounded-md border border-border shadow-sm ring-0">
+    <PanelCard>
       <CardHeader>
         <CardTitle>Current state</CardTitle>
       </CardHeader>
@@ -66,6 +67,6 @@ export function MonitorState({ monitor }: { monitor: Monitor }) {
           </p>
         </div>
       </CardContent>
-    </Card>
+    </PanelCard>
   );
 }

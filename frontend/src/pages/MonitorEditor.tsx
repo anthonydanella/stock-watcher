@@ -18,10 +18,11 @@ import { MonitorEditorSidebar } from "../components/monitors/editor/MonitorEdito
 import { MonitorDashboardTrends } from "../components/monitors/MonitorDashboardTrends";
 import { MonitorHistory } from "../components/monitors/MonitorHistory";
 import { MonitorState } from "../components/monitors/MonitorState";
+import { PanelCard } from "../components/shared/PanelCard";
 import { EditorSkeleton } from "../components/shared/Skeletons";
 import { Alert } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
+import { CardContent } from "../components/ui/card";
 import { errorMessage, formatSeconds } from "../lib/format";
 import { blankMonitor, isFullMonitor, monitorCopyPayload } from "../lib/monitor";
 import { cn } from "../lib/utils";
@@ -292,11 +293,11 @@ export function MonitorEditor() {
       {loadError ? <Alert variant="destructive">{loadError}</Alert> : null}
 
       {loading ? (
-        <Card className="rounded-md border border-border shadow-sm ring-0">
+        <PanelCard>
           <CardContent className="pt-5">
             <EditorSkeleton />
           </CardContent>
-        </Card>
+        </PanelCard>
       ) : null}
 
       {!loading && !loadError ? (
