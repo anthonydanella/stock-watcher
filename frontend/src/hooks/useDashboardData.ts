@@ -5,10 +5,25 @@ import { errorMessage } from "../lib/format";
 import type { EventRow, Monitor, SchedulerStatus } from "../types";
 
 const AUTO_REFRESH_MS = 15_000;
+const NOTIFICATION_FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export type NotificationFailureSummary = { count: number; lastAt: string | null };
+
+function summarizeNotificationFailures(events: EventRow[]): NotificationFailureSummary {
+  const cutoff = Date.now() - NOTIFICATION_FAILURE_WINDOW_MS;
+  // Events arrive newest-first, so the first match is the most recent failure.
+  const failures = events.filter(
+    (event) =>
+      event.event_type === "notification_error" && new Date(event.created_at).getTime() >= cutoff
+  );
+  return { count: failures.length, lastAt: failures[0]?.created_at ?? null };
+}
 
 export function useDashboardData() {
   const [monitors, setMonitors] = React.useState<Monitor[]>([]);
   const [events, setEvents] = React.useState<EventRow[]>([]);
+  const [notificationFailures, setNotificationFailures] =
+    React.useState<NotificationFailureSummary>({ count: 0, lastAt: null });
   const [schedulerStatus, setSchedulerStatus] = React.useState<SchedulerStatus | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -33,6 +48,7 @@ export function useDashboardData() {
       if (requestId !== refreshRequest.current) return;
       setMonitors(nextMonitors);
       setEvents(nextEvents.slice(0, 8));
+      setNotificationFailures(summarizeNotificationFailures(nextEvents));
       setSchedulerStatus(nextSchedulerStatus);
       setError("");
     } catch (exc) {
@@ -63,5 +79,5 @@ export function useDashboardData() {
     };
   }, [refresh]);
 
-  return { monitors, events, schedulerStatus, busy, error, refresh };
+  return { monitors, events, notificationFailures, schedulerStatus, busy, error, refresh };
 }
