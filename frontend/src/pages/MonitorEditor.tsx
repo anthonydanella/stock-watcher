@@ -231,7 +231,7 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
 
   return (
     <div className={cn("space-y-6", editing && "pb-24")}>
-      <div className="sticky top-14 z-10 -mx-3 space-y-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:-mx-4 sm:px-4">
+      <div className="sticky mb-0 top-14 z-10 -mx-3 space-y-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:-mx-4 sm:px-4">
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/monitors"))}
