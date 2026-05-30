@@ -1,4 +1,4 @@
-import { ExternalLink, ImageIcon } from "lucide-react";
+import { ExternalLink, ImageIcon, ImageOff } from "lucide-react";
 
 import { formatDate } from "../../lib/format";
 import { cn } from "../../lib/utils";
@@ -17,16 +17,39 @@ export function MonitorScreenshot({ monitor, compact = false, className }: Monit
       : null;
 
   if (!imageUrl) {
+    const failed = Boolean(monitor.last_screenshot_error);
+    const label = failed ? "Screenshot failed" : "No screenshot yet";
+    const Icon = failed ? ImageOff : ImageIcon;
+
+    // Compact (table preview) keeps the small fixed tile so the column stays aligned.
+    if (compact) {
+      return (
+        <div
+          className={cn(
+            "flex aspect-video w-20 min-h-0 items-center justify-center rounded-md border border-dashed border-border bg-secondary",
+            failed ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+            className
+          )}
+          title={failed ? `${label}: ${monitor.last_screenshot_error}` : label}
+        >
+          <Icon className="h-4 w-4" aria-hidden="true" />
+          <span className="sr-only">{label}</span>
+        </div>
+      );
+    }
+
+    // In cards an empty 16:9 tile dominates the layout, so collapse to a slim strip.
     return (
       <div
         className={cn(
-          "flex aspect-video min-h-0 items-center justify-center rounded-md border border-dashed border-border bg-secondary text-muted-foreground",
-          compact ? "w-20" : "w-full",
+          "flex items-center gap-2 rounded-md border border-dashed border-border bg-secondary/40 px-3 py-1.5 text-xs",
+          failed ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
           className
         )}
+        title={failed ? monitor.last_screenshot_error : undefined}
       >
-        <ImageIcon className={compact ? "h-4 w-4" : "h-6 w-6"} aria-hidden="true" />
-        <span className="sr-only">No screenshot captured</span>
+        <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden="true" />
+        <span className="min-w-0 truncate">{label}</span>
       </div>
     );
   }
