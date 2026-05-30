@@ -554,7 +554,7 @@ export function Monitors() {
                       direction={sortDir}
                       onClick={toggleSort}
                     />
-                    <TableHead className="w-32 pr-4 text-right">Actions</TableHead>
+                    <TableHead className="w-40 pr-4 text-right">Actions</TableHead>
                   </tr>
                 </thead>
                 {grouped ? (
@@ -913,7 +913,7 @@ function MonitorRow({
           <NextCheckSummary monitor={monitor} cooling={cooling} />
         </ScheduleEditPopover>
       </TableCell>
-      <TableCell className="w-32 py-2 pr-4">
+      <TableCell className="w-40 py-2 pr-4">
         <div className="flex justify-end">
           <MonitorActions
             monitor={monitor}

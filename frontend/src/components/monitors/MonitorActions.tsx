@@ -1,5 +1,6 @@
-import { Copy, LoaderCircle, Pause, Play, Power } from "lucide-react";
+import { Copy, LoaderCircle, Pause, Pencil, Play, Power } from "lucide-react";
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "../../api";
 import { cn } from "../../lib/utils";
@@ -37,6 +38,16 @@ export function MonitorActions({
   if (compact) {
     return (
       <div className="flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger
+            render={<Link to={`/monitors/${monitor.id}/edit`} />}
+            aria-label="Edit"
+            className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </TooltipTrigger>
+          <TooltipContent>Edit</TooltipContent>
+        </Tooltip>
         <IconAction
           label={monitor.enabled ? "Disable" : "Enable"}
           disabled={busy}
@@ -70,6 +81,17 @@ export function MonitorActions({
 
   return (
     <div className={cn("flex gap-2", stretch ? "w-full" : "flex-wrap")}>
+      <Link
+        to={`/monitors/${monitor.id}/edit`}
+        aria-label={`Edit ${monitor.name}`}
+        className={cn(
+          buttonVariants({ variant: "outline", size: stretch ? "lg" : "default" }),
+          stretch && "flex-1"
+        )}
+      >
+        <Pencil className="h-4 w-4" />
+        Edit
+      </Link>
       <Button
         variant="outline"
         size={stretch ? "lg" : "default"}

@@ -53,8 +53,9 @@ export function Shell() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/monitors" element={<Monitors />} />
-            <Route path="/monitors/new" element={<MonitorEditor />} />
-            <Route path="/monitors/:id" element={<MonitorEditor />} />
+            <Route path="/monitors/new" element={<MonitorEditor mode="edit" />} />
+            <Route path="/monitors/:id" element={<MonitorEditor mode="view" />} />
+            <Route path="/monitors/:id/edit" element={<MonitorEditor mode="edit" />} />
             <Route path="/alerts" element={<AlertRules />} />
             <Route path="/events" element={<Events />} />
             <Route path="/settings" element={<SettingsPage />} />
