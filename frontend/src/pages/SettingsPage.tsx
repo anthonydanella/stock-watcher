@@ -209,6 +209,17 @@ export function SettingsPage() {
                     </SelectContent>
                   </Select>
                 </FormField>
+                <div className="md:col-span-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={Boolean(busyAction)}
+                    onClick={testNotification}
+                  >
+                    <Bell className="h-4 w-4" />
+                    {busyAction === "test" ? "Sending" : "Send test"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -305,15 +316,6 @@ export function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={Boolean(busyAction) || Boolean(extraParamsError)}>
               {busyAction === "save" ? "Saving" : "Save settings"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={Boolean(busyAction)}
-              onClick={testNotification}
-            >
-              <Bell className="h-4 w-4" />
-              {busyAction === "test" ? "Sending" : "Send test"}
             </Button>
           </div>
         </form>
