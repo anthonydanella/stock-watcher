@@ -8,6 +8,7 @@ import { Monitors } from "../../pages/Monitors";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { navLinkClass } from "./navigation";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Shell() {
   return (
@@ -42,6 +43,9 @@ export function Shell() {
               Settings
             </NavLink>
           </nav>
+          <div className="order-2 ml-auto shrink-0 lg:order-none lg:ml-0">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-450 px-3 sm:px-4 py-4 sm:py-6">
