@@ -1,14 +1,12 @@
 {
   "name": "stock-watcher-ui",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc && vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "lint": "biome check",
-    "format": "biome check --write"
+    "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -30,7 +28,6 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.15",
