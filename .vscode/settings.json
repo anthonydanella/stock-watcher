@@ -25,5 +25,8 @@
 	"editor.defaultFormatter": "biomejs.biome",
 	"[typescriptreact]": {
 		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[python]": {
+		"editor.defaultFormatter": "charliermarsh.ruff"
 	}
 }
