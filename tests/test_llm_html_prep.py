@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.llm import HTML_LIMIT, prepare_html_for_llm
+from app.llm_html import HTML_LIMIT, prepare_html_for_llm
 
 
 def test_default_limit_is_generous_enough_for_real_product_pages() -> None:
