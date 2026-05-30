@@ -13,6 +13,7 @@ import type { Monitor } from "../../types";
 import { Alert } from "../ui/alert";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader } from "../ui/card";
+import { Checkbox } from "../ui/checkbox";
 import { type MonitorActionKind, MonitorActions } from "./MonitorActions";
 import { MonitorQuantitySparkline } from "./MonitorQuantitySparkline";
 import { MonitorScreenshot } from "./MonitorScreenshot";
@@ -57,7 +58,9 @@ export function MonitorListCard({
   busyActions,
   onAction,
   onDuplicate,
-  onPatch
+  onPatch,
+  selected = false,
+  onSelectedChange
 }: {
   monitor: Monitor;
   busyActions: Record<number, MonitorActionKind>;
@@ -68,6 +71,8 @@ export function MonitorListCard({
   ) => Promise<void>;
   onDuplicate?: (monitor: Monitor) => Promise<void> | void;
   onPatch: (updated: Monitor) => void;
+  selected?: boolean;
+  onSelectedChange?: (checked: boolean) => void;
 }) {
   const theme = getStatusTheme(monitor.status, monitor.enabled);
   const isQuantity = monitor.stock_mode === "quantity";
@@ -79,12 +84,21 @@ export function MonitorListCard({
       className={cn(
         "min-w-0 overflow-hidden rounded-lg border border-border shadow-sm transition-shadow duration-200 hover:shadow-md",
         !monitor.enabled && "opacity-75 hover:opacity-100",
+        selected && "border-primary/50 bg-primary/5",
         theme.borderHover
       )}
     >
       <CardHeader>
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <Link to={`/monitors/${monitor.id}`} className="block min-w-0">
+          {onSelectedChange ? (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(checked) => onSelectedChange(checked === true)}
+              aria-label={`Select ${monitor.name}`}
+              className="mt-1 shrink-0"
+            />
+          ) : null}
+          <Link to={`/monitors/${monitor.id}`} className="block min-w-0 flex-1">
             <div className="truncate font-heading text-base font-medium leading-normal hover:underline">
               {monitor.name}
             </div>
