@@ -40,15 +40,15 @@ export function Dashboard() {
         </LinkButton>
       </PageHeader>
       {error ? <Alert variant="destructive">{error}</Alert> : null}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric title="Monitors" value={counts.total} icon={<Activity className="h-4 w-4" />} />
-        <Metric title="In stock" value={counts.inStock} icon={<Bell className="h-4 w-4" />} />
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border pb-3">
+        <Metric title="Monitors" value={counts.total} icon={<Activity className="h-3.5 w-3.5" />} />
+        <Metric title="In stock" value={counts.inStock} icon={<Bell className="h-3.5 w-3.5" />} />
         <Metric
           title="Challenges"
           value={counts.challenge}
-          icon={<ShieldAlert className="h-4 w-4" />}
+          icon={<ShieldAlert className="h-3.5 w-3.5" />}
         />
-        <Metric title="Errors" value={counts.errors} icon={<Clock className="h-4 w-4" />} />
+        <Metric title="Errors" value={counts.errors} icon={<Clock className="h-3.5 w-3.5" />} />
       </div>
       <section className="space-y-3" aria-labelledby="dashboard-monitors">
         <SectionHeader id="dashboard-monitors" title="Monitors" />
