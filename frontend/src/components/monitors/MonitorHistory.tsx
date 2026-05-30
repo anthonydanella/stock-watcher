@@ -17,7 +17,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
-import { Table, TableCell, TableHead } from "../ui/table";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "../ui/table";
 
 const HISTORY_PAGE_SIZE = 10;
 
@@ -152,7 +152,7 @@ export function MonitorHistory({
 
                 <div className="hidden max-h-[36rem] overflow-auto rounded-md border lg:block">
                   <Table className="table-fixed">
-                    <thead>
+                    <thead className="[&_th]:border-b">
                       <tr>
                         <TableHead className="sticky top-0 z-10 w-48 bg-card">Time</TableHead>
                         <TableHead className="sticky top-0 z-10 w-36 bg-card">Status</TableHead>
@@ -166,12 +166,14 @@ export function MonitorHistory({
                         <TableHead className="sticky top-0 z-10 bg-card">Evidence</TableHead>
                       </tr>
                     </thead>
-                    <tbody>
+                    <TableBody>
                       {visibleAttempts.map((attempt) => {
                         const expanded = expandedIds.has(attempt.id);
                         return (
                           <React.Fragment key={attempt.id}>
-                            <tr className={expanded ? "bg-secondary/20" : undefined}>
+                            <TableRow
+                              className={cn(expanded && "bg-secondary/20 hover:bg-secondary/20")}
+                            >
                               <TableCell className="whitespace-nowrap">
                                 {formatDate(attempt.created_at)}
                               </TableCell>
@@ -201,7 +203,7 @@ export function MonitorHistory({
                                   onToggle={() => toggleExpanded(attempt.id)}
                                 />
                               </TableCell>
-                            </tr>
+                            </TableRow>
                             {expanded ? (
                               <tr>
                                 <TableCell
@@ -215,7 +217,7 @@ export function MonitorHistory({
                           </React.Fragment>
                         );
                       })}
-                    </tbody>
+                    </TableBody>
                   </Table>
                 </div>
 
