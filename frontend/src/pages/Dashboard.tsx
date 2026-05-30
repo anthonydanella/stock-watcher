@@ -1,9 +1,10 @@
-import { Activity, Bell, Clock, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import { Activity, Bell, ChevronRight, Clock, Plus, RefreshCw, ShieldAlert } from "lucide-react";
 import React from "react";
 
 import { EventsTable } from "../components/events/EventsTable";
 import { MonitorCards } from "../components/monitors/MonitorCards";
 import { SchedulerObservabilityPanel } from "../components/scheduler/SchedulerObservabilityPanel";
+import { EmptyState } from "../components/shared/EmptyState";
 import { LinkButton } from "../components/shared/LinkButton";
 import { Metric } from "../components/shared/Metric";
 import { PageHeader } from "../components/shared/PageHeader";
@@ -11,6 +12,15 @@ import { SectionHeader } from "../components/shared/SectionHeader";
 import { Alert } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { useDashboardData } from "../hooks/useDashboardData";
+import type { Monitor } from "../types";
+
+const ATTENTION_STATUSES = new Set(["in_stock", "low_stock", "error", "challenge"]);
+
+function needsAttention(monitor: Monitor) {
+  if (ATTENTION_STATUSES.has(monitor.status)) return true;
+  const cooldown = monitor.cooldown_until ? new Date(monitor.cooldown_until).getTime() : 0;
+  return cooldown > Date.now();
+}
 
 export function Dashboard() {
   const { monitors, events, schedulerStatus, refresh, busy, error } = useDashboardData();
@@ -23,6 +33,7 @@ export function Dashboard() {
     }),
     [monitors]
   );
+  const attention = React.useMemo(() => monitors.filter(needsAttention), [monitors]);
 
   return (
     <div className="space-y-6">
@@ -50,9 +61,20 @@ export function Dashboard() {
         />
         <Metric title="Errors" value={counts.errors} icon={<Clock className="h-3.5 w-3.5" />} />
       </div>
-      <section className="space-y-3" aria-labelledby="dashboard-monitors">
-        <SectionHeader id="dashboard-monitors" title="Monitors" />
-        <MonitorCards monitors={monitors} onChanged={refresh} />
+      <section className="space-y-3" aria-labelledby="dashboard-attention">
+        <SectionHeader id="dashboard-attention" title="Needs attention">
+          <LinkButton variant="outline" size="sm" to="/monitors">
+            All monitors
+            <ChevronRight className="h-3.5 w-3.5" />
+          </LinkButton>
+        </SectionHeader>
+        {counts.total === 0 ? (
+          <EmptyState message="No monitors yet. Add one to start checking stock." />
+        ) : attention.length === 0 ? (
+          <EmptyState message="All clear — every monitor is healthy and nothing needs attention." />
+        ) : (
+          <MonitorCards monitors={attention} onChanged={refresh} />
+        )}
       </section>
       <section className="space-y-3" aria-labelledby="dashboard-events">
         <SectionHeader id="dashboard-events" title="Recent activity" />

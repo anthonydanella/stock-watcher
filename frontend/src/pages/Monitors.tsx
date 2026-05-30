@@ -69,7 +69,7 @@ export function Monitors() {
     <div className="space-y-6">
       <PageHeader
         title="Monitors"
-        description="Configure URLs, stock rules, intervals, and jitter."
+        description="Every monitor, with status, schedule, and controls."
       >
         <LinkButton to="/monitors/new">
           <Plus className="h-4 w-4" />
