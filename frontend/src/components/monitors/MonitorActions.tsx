@@ -1,15 +1,18 @@
-import { LoaderCircle, Play } from "lucide-react";
+import { Copy, LoaderCircle, Play } from "lucide-react";
 
 import { api } from "../../api";
+import { cn } from "../../lib/utils";
 import type { Monitor } from "../../types";
-import { Button } from "../ui/button";
+import { Button, buttonVariants } from "../ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-export type MonitorActionKind = "toggle" | "run";
+export type MonitorActionKind = "toggle" | "run" | "duplicate";
 
 export function MonitorActions({
   monitor,
   busyActions,
   onAction,
+  onDuplicate,
   compact = false
 }: {
   monitor: Monitor;
@@ -19,12 +22,14 @@ export function MonitorActions({
     kind: MonitorActionKind,
     fn: () => Promise<Monitor>
   ) => Promise<void>;
+  onDuplicate?: (monitor: Monitor) => Promise<void> | void;
   compact?: boolean;
 }) {
   const activeAction = busyActions[monitor.id];
   const busy = Boolean(activeAction);
   const running = activeAction === "run";
   const toggling = activeAction === "toggle";
+  const duplicating = activeAction === "duplicate";
   return (
     <div className="flex flex-wrap gap-2">
       <Button
@@ -49,6 +54,26 @@ export function MonitorActions({
         )}
         {running ? "Running" : "Run"}
       </Button>
+      {onDuplicate ? (
+        <Tooltip>
+          <TooltipTrigger
+            disabled={busy}
+            aria-label={`Duplicate ${monitor.name}`}
+            aria-busy={duplicating}
+            onClick={() => void onDuplicate(monitor)}
+            className={cn(buttonVariants({ variant: "ghost", size: compact ? "icon-sm" : "icon" }))}
+          >
+            {duplicating ? (
+              <LoaderCircle
+                className={compact ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4 animate-spin"}
+              />
+            ) : (
+              <Copy className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+            )}
+          </TooltipTrigger>
+          <TooltipContent>Duplicate</TooltipContent>
+        </Tooltip>
+      ) : null}
     </div>
   );
 }
