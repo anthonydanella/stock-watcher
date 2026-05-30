@@ -21,7 +21,7 @@ export function MonitorScreenshot({ monitor, compact = false, className }: Monit
       <div
         className={cn(
           "flex aspect-video min-h-0 items-center justify-center rounded-md border border-dashed border-border bg-secondary text-muted-foreground",
-          compact ? "h-16 w-28" : "w-full",
+          compact ? "w-20" : "w-full",
           className
         )}
       >
@@ -32,7 +32,7 @@ export function MonitorScreenshot({ monitor, compact = false, className }: Monit
   }
 
   return (
-    <figure className={cn("space-y-2", compact ? "w-28" : "w-full", className)}>
+    <figure className={cn("space-y-2", compact ? "w-20" : "w-full", className)}>
       <a
         href={imageUrl}
         target="_blank"
@@ -45,7 +45,7 @@ export function MonitorScreenshot({ monitor, compact = false, className }: Monit
           alt={`Latest screenshot for ${monitor.name}`}
           className={cn(
             "aspect-video w-full object-cover transition duration-150 group-hover:scale-[1.02]",
-            compact ? "h-16" : "max-h-44"
+            compact ? "" : "max-h-44"
           )}
           loading="lazy"
         />

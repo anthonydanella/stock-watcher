@@ -284,12 +284,12 @@ export function Monitors() {
             ) : null}
           </div>
 
-          <Card className="hidden min-w-0 overflow-hidden rounded-md border border-border shadow-sm ring-0 lg:block">
+          <Card className="hidden min-w-0 overflow-hidden rounded-md border border-border py-0 shadow-sm ring-0 lg:block">
             <CardContent className="p-0">
               <Table className="table-fixed">
                 <thead className="border-b bg-muted/30">
                   <tr>
-                    <TableHead className="w-28">Screenshot</TableHead>
+                    <TableHead className="w-24 pl-4">Preview</TableHead>
                     <SortableHead
                       label="Monitor"
                       sortKey="name"
@@ -299,7 +299,7 @@ export function Monitors() {
                     />
                     <SortableHead
                       label="Status"
-                      className="w-36"
+                      className="w-32"
                       sortKey="status"
                       activeKey={sortKey}
                       direction={sortDir}
@@ -307,7 +307,7 @@ export function Monitors() {
                     />
                     <SortableHead
                       label="Stock"
-                      className="w-40"
+                      className="w-36"
                       sortKey="stock"
                       activeKey={sortKey}
                       direction={sortDir}
@@ -315,7 +315,7 @@ export function Monitors() {
                     />
                     <SortableHead
                       label="Last check"
-                      className="w-40"
+                      className="w-32"
                       sortKey="last_checked"
                       activeKey={sortKey}
                       direction={sortDir}
@@ -323,13 +323,13 @@ export function Monitors() {
                     />
                     <SortableHead
                       label="Next check"
-                      className="w-48"
+                      className="w-40"
                       sortKey="next_check"
                       activeKey={sortKey}
                       direction={sortDir}
                       onClick={toggleSort}
                     />
-                    <TableHead className="w-40 text-right">Actions</TableHead>
+                    <TableHead className="w-32 pr-4 text-right">Actions</TableHead>
                   </tr>
                 </thead>
                 <tbody>
@@ -526,12 +526,12 @@ function MonitorRow({
   const cooling = isCoolingDown(monitor);
   const isQuantity = monitor.stock_mode === "quantity";
   return (
-    <tr className={cn(!monitor.enabled && "opacity-60 hover:opacity-100")}>
-      <TableCell className="w-28">
+    <tr className={cn("align-middle", !monitor.enabled && "opacity-60 hover:opacity-100")}>
+      <TableCell className="w-24 py-2 pl-4">
         <MonitorScreenshot monitor={monitor} compact />
       </TableCell>
-      <TableCell className="min-w-0">
-        <div className="flex min-w-0 items-start gap-2">
+      <TableCell className="min-w-0 py-2">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="min-w-0 flex-1">
             <Link
               to={`/monitors/${monitor.id}`}
@@ -545,7 +545,7 @@ function MonitorRow({
             <Tooltip>
               <TooltipTrigger
                 aria-label="Last error"
-                className="mt-0.5 inline-flex shrink-0 rounded-full text-amber-600 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-amber-400"
+                className="inline-flex shrink-0 rounded-full text-amber-600 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-amber-400"
               >
                 <AlertTriangle className="h-4 w-4" />
               </TooltipTrigger>
@@ -561,24 +561,26 @@ function MonitorRow({
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="w-36">
-        <div className="flex flex-col items-start gap-1">
-          <Badge className={statusBadgeClass(monitor.status)}>{statusLabel(monitor.status)}</Badge>
+      <TableCell className="w-32 py-2">
+        <div className="flex flex-col gap-0.5">
+          <Badge className={cn(statusBadgeClass(monitor.status), "w-fit")}>
+            {statusLabel(monitor.status)}
+          </Badge>
           {cooling ? (
-            <span className="text-[11px] text-violet-700 dark:text-violet-300">
+            <span className="text-[11px] leading-tight text-violet-700 dark:text-violet-300">
               Cooling {timeAgo(monitor.cooldown_until)}
             </span>
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="w-40">
+      <TableCell className="w-36 py-2">
         <StockCell monitor={monitor} isQuantity={isQuantity} />
       </TableCell>
-      <TableCell className="w-40 text-sm">
+      <TableCell className="w-32 py-2 text-sm">
         {monitor.last_checked_at ? (
           <Tooltip>
             <TooltipTrigger className="cursor-default text-left">
-              <div>{timeAgo(monitor.last_checked_at) || "Just now"}</div>
+              {timeAgo(monitor.last_checked_at) || "Just now"}
             </TooltipTrigger>
             <TooltipContent side="top">{formatDate(monitor.last_checked_at)}</TooltipContent>
           </Tooltip>
@@ -586,13 +588,13 @@ function MonitorRow({
           <span className="text-muted-foreground">Never</span>
         )}
       </TableCell>
-      <TableCell className="w-48 text-sm">
-        <div>{formatScheduleState(monitor, true)}</div>
-        <div className="text-xs text-muted-foreground">
+      <TableCell className="w-40 py-2 text-sm">
+        <div className="leading-tight">{formatScheduleState(monitor, true)}</div>
+        <div className="text-xs leading-tight text-muted-foreground">
           {formatCadence(monitor.interval_seconds, monitor.jitter_percent)}
         </div>
       </TableCell>
-      <TableCell className="w-40 text-right">
+      <TableCell className="w-32 py-2 pr-4">
         <div className="flex justify-end">
           <MonitorActions
             monitor={monitor}
@@ -614,21 +616,19 @@ function StockCell({ monitor, isQuantity }: { monitor: Monitor; isQuantity: bool
   const trend = monitor.recent_quantities ?? [];
   return (
     <div className="flex items-center gap-2">
-      <div className="min-w-0">
+      <div className="min-w-0 leading-tight">
         <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
           {monitor.last_quantity != null ? monitor.last_quantity.toLocaleString() : "—"}
         </div>
         {monitor.low_stock_threshold != null ? (
-          <div className="text-[11px] text-muted-foreground">
-            low ≤ {monitor.low_stock_threshold}
-          </div>
+          <div className="text-[11px] text-muted-foreground">≤ {monitor.low_stock_threshold}</div>
         ) : null}
       </div>
       {trend.length > 1 ? (
         <MonitorQuantitySparkline
           values={trend}
           threshold={monitor.low_stock_threshold}
-          className="shrink-0"
+          className="ml-auto shrink-0"
         />
       ) : null}
     </div>
