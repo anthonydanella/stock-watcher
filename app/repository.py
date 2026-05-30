@@ -230,7 +230,9 @@ class Repository:
             ),
         )
         self.conn.commit()
-        return int(cursor.lastrowid)
+        row_id = cursor.lastrowid
+        assert row_id is not None  # a successful INSERT always populates lastrowid
+        return row_id
 
     def update_monitor(self, monitor_id: int, fields: dict[str, Any]) -> None:
         if not fields:
@@ -416,7 +418,9 @@ class Repository:
             ),
         )
         self.conn.commit()
-        return int(cursor.lastrowid)
+        row_id = cursor.lastrowid
+        assert row_id is not None  # a successful INSERT always populates lastrowid
+        return row_id
 
     def update_notification_rule(self, rule_id: int, rule: NotificationRule) -> None:
         self.conn.execute(

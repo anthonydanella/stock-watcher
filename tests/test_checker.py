@@ -28,6 +28,7 @@ from tests.checker_helpers import (
     RejectingNtfy,
     make_monitor,
     repo,
+    require_monitor,
     settings,
 )
 
@@ -36,7 +37,7 @@ from tests.checker_helpers import (
 async def test_check_monitor_records_in_stock_transition(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -47,7 +48,7 @@ async def test_check_monitor_records_in_stock_transition(tmp_path: Path) -> None
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_IN_STOCK
     assert ntfy.messages[0][0] == "Stock watcher active"
 
@@ -56,7 +57,7 @@ async def test_check_monitor_records_in_stock_transition(tmp_path: Path) -> None
 async def test_check_monitor_saves_latest_screenshot(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -73,7 +74,7 @@ async def test_check_monitor_saves_latest_screenshot(tmp_path: Path) -> None:
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_IN_STOCK
     assert updated.last_screenshot_at is not None
     assert updated.last_screenshot_error == ""
@@ -84,7 +85,7 @@ async def test_check_monitor_saves_latest_screenshot(tmp_path: Path) -> None:
 async def test_check_monitor_sends_initial_out_of_stock_notification(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -95,7 +96,7 @@ async def test_check_monitor_sends_initial_out_of_stock_notification(tmp_path: P
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     attempts = repository.list_attempts(monitor_id)
     assert updated.status == STATUS_OUT_OF_STOCK
     assert "Expected text to contain" in attempts[0].reason
@@ -113,7 +114,7 @@ async def test_check_monitor_records_match_centered_evidence_for_long_text(tmp_p
     monitor = make_monitor()
     monitor.match_value = "in stock now"
     monitor_id = repository.create_monitor(monitor)
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -140,7 +141,7 @@ async def test_check_monitor_keeps_unchanged_out_of_stock_silent(tmp_path: Path)
     monitor = make_monitor()
     monitor.status = STATUS_OUT_OF_STOCK
     monitor_id = repository.create_monitor(monitor)
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -151,7 +152,7 @@ async def test_check_monitor_keeps_unchanged_out_of_stock_silent(tmp_path: Path)
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_OUT_OF_STOCK
     assert ntfy.messages == []
 
@@ -160,7 +161,7 @@ async def test_check_monitor_keeps_unchanged_out_of_stock_silent(tmp_path: Path)
 async def test_check_monitor_detects_challenge_and_notifies(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -171,7 +172,7 @@ async def test_check_monitor_detects_challenge_and_notifies(tmp_path: Path) -> N
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_CHALLENGE
     assert updated.cooldown_until is not None
     assert updated.next_check_at == updated.cooldown_until
@@ -188,7 +189,7 @@ async def test_check_monitor_uses_cooldown_as_next_check_for_repeated_errors(
     monitor.failure_count = 2
     monitor_id = repository.create_monitor(monitor)
     repository.update_monitor(monitor_id, {"failure_count": 2})
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -198,7 +199,7 @@ async def test_check_monitor_uses_cooldown_as_next_check_for_repeated_errors(
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_ERROR
     assert updated.failure_count == 3
     assert updated.cooldown_until is not None
@@ -209,7 +210,7 @@ async def test_check_monitor_uses_cooldown_as_next_check_for_repeated_errors(
 async def test_check_monitor_classifies_http_errors(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -219,7 +220,7 @@ async def test_check_monitor_classifies_http_errors(tmp_path: Path) -> None:
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     attempts = repository.list_attempts(monitor_id)
     assert updated.status == STATUS_ERROR
     assert updated.last_error_type == ERROR_HTTP
@@ -233,7 +234,7 @@ async def test_check_monitor_classifies_selector_errors(tmp_path: Path) -> None:
     monitor = make_monitor()
     monitor.selector_or_path = "div["
     monitor_id = repository.create_monitor(monitor)
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -243,7 +244,7 @@ async def test_check_monitor_classifies_selector_errors(tmp_path: Path) -> None:
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     attempts = repository.list_attempts(monitor_id)
     assert updated.status == STATUS_ERROR
     assert updated.last_error_type == ERROR_SELECTOR
@@ -267,12 +268,12 @@ async def test_check_monitor_classifies_fetch_exceptions(
 ) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FailingChecker(repository, settings(tmp_path), FakeNtfy(), exc)
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     attempts = repository.list_attempts(monitor_id)
     assert updated.status == STATUS_ERROR
     assert updated.last_error_type == error_type
@@ -284,7 +285,7 @@ async def test_check_monitor_classifies_fetch_exceptions(
 async def test_check_monitor_records_screenshot_error_event(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -300,7 +301,7 @@ async def test_check_monitor_records_screenshot_error_event(tmp_path: Path) -> N
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     events = repository.list_events()
     assert updated.status == STATUS_IN_STOCK
     assert updated.last_screenshot_error == "page screenshot failed"
@@ -311,7 +312,7 @@ async def test_check_monitor_records_screenshot_error_event(tmp_path: Path) -> N
 async def test_check_monitor_survives_ntfy_failure(tmp_path: Path) -> None:
     repository = repo(tmp_path)
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -321,7 +322,7 @@ async def test_check_monitor_survives_ntfy_failure(tmp_path: Path) -> None:
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     events = repository.list_events()
     assert updated.status == STATUS_IN_STOCK
     assert any(row["event_type"] == EVENT_NOTIFICATION_ERROR for row in events)
@@ -332,7 +333,7 @@ async def test_check_monitor_records_rejected_configured_notification(tmp_path: 
     repository = repo(tmp_path)
     repository.save_settings(AppSettings(True, "https://ntfy.sh", "stock-alerts", "", "default"))
     monitor_id = repository.create_monitor(make_monitor())
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     checker = FakeChecker(
         repository,
         settings(tmp_path),
@@ -352,7 +353,7 @@ async def test_check_monitor_master_toggle_suppresses_notifications(tmp_path: Pa
     monitor = make_monitor()
     monitor.notifications_enabled = False
     monitor_id = repository.create_monitor(monitor)
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -363,7 +364,7 @@ async def test_check_monitor_master_toggle_suppresses_notifications(tmp_path: Pa
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     events = repository.list_events()
     assert updated.status == STATUS_IN_STOCK
     assert ntfy.messages == []
@@ -377,7 +378,7 @@ async def test_check_monitor_stock_change_toggle_only(tmp_path: Path) -> None:
     monitor = make_monitor()
     monitor.notify_on_stock_change = False
     monitor_id = repository.create_monitor(monitor)
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -388,7 +389,7 @@ async def test_check_monitor_stock_change_toggle_only(tmp_path: Path) -> None:
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     events = repository.list_events()
     assert updated.status == STATUS_IN_STOCK
     assert ntfy.messages == []
@@ -401,7 +402,7 @@ async def test_check_monitor_challenge_toggle_off(tmp_path: Path) -> None:
     monitor = make_monitor()
     monitor.notify_on_challenge = False
     monitor_id = repository.create_monitor(monitor)
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -412,7 +413,7 @@ async def test_check_monitor_challenge_toggle_off(tmp_path: Path) -> None:
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     events = repository.list_events()
     assert updated.status == STATUS_CHALLENGE
     assert ntfy.messages == []
@@ -427,7 +428,7 @@ async def test_check_monitor_error_toggle_off(tmp_path: Path) -> None:
     monitor.failure_count = 2
     monitor_id = repository.create_monitor(monitor)
     repository.update_monitor(monitor_id, {"failure_count": 2})
-    monitor = repository.get_monitor(monitor_id)
+    monitor = require_monitor(repository, monitor_id)
     ntfy = FakeNtfy()
     checker = FakeChecker(
         repository,
@@ -438,7 +439,7 @@ async def test_check_monitor_error_toggle_off(tmp_path: Path) -> None:
 
     await checker.check_monitor(monitor)
 
-    updated = repository.get_monitor(monitor_id)
+    updated = require_monitor(repository, monitor_id)
     events = repository.list_events()
     assert updated.status == STATUS_ERROR
     assert updated.failure_count == 3
