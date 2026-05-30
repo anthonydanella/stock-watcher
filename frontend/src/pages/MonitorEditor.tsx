@@ -383,7 +383,7 @@ function RouteTab({
       to={to}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "-mb-px rounded-sm border-b-2 px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         active
           ? "border-primary text-primary"
           : "border-transparent text-muted-foreground hover:text-foreground"
