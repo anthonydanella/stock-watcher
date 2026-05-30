@@ -28,7 +28,7 @@ export function Metric({
       <span className={cn("text-muted-foreground/70 transition-colors", tone?.icon)}>{icon}</span>
       <span>{title}</span>
       <span
-        className={cn("font-medium text-foreground tabular-nums transition-colors", tone?.value)}
+        className={cn("font-semibold text-foreground tabular-nums transition-colors", tone?.value)}
       >
         {value}
       </span>

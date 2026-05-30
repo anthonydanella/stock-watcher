@@ -1,3 +1,4 @@
+import { Radar } from "lucide-react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import packageInfo from "../../../package.json";
 import { AlertRules } from "../../pages/AlertRules";
@@ -16,16 +17,19 @@ export function Shell() {
   // position: sticky for the nav and page headers.
   return (
     <div className="min-h-screen overflow-x-clip">
-      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-card/70 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/60">
         <div className="mx-auto flex min-h-14 w-full max-w-450 flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-2 lg:flex-nowrap lg:gap-6 lg:py-0">
           <div className="flex min-w-0 items-center gap-2">
             <Link
               to="/"
-              className="truncate rounded-sm text-base font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="flex min-w-0 items-center gap-2 rounded-md text-base font-semibold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              Stock Watcher
+              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary ring-1 ring-inset ring-primary/15">
+                <Radar className="size-4" aria-hidden="true" />
+              </span>
+              <span className="truncate">Stock Watcher</span>
             </Link>
-            <span className="shrink-0 rounded-full border bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            <span className="shrink-0 rounded-full border bg-background px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
               v{packageInfo.version}
             </span>
           </div>
