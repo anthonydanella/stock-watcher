@@ -1,6 +1,6 @@
 import { ArrowLeft, Copy, LoaderCircle, Play } from "lucide-react";
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "../api";
 import { DangerZone } from "../components/monitors/editor/EditorActions";
@@ -28,9 +28,10 @@ import { blankMonitor, isFullMonitor, monitorCopyPayload } from "../lib/monitor"
 import { cn } from "../lib/utils";
 import type { CheckAttempt, Monitor } from "../types";
 
-export function MonitorEditor() {
+export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
   const { id } = useParams();
   const isNew = !id;
+  const editing = isNew || mode === "edit";
   const navigate = useNavigate();
   const formRef = React.useRef<HTMLFormElement>(null);
   const [monitor, setMonitor] = React.useState<Partial<Monitor>>(blankMonitor);
@@ -42,7 +43,6 @@ export function MonitorEditor() {
     "save" | "run" | "delete" | "duplicate" | null
   >(null);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"overview" | "settings">("overview");
 
   React.useEffect(() => {
     let active = true;
@@ -213,6 +213,21 @@ export function MonitorEditor() {
     }
   }
 
+  const editorForm = (
+    <MonitorEditorForm
+      monitor={monitor}
+      isNew={isNew}
+      busyAction={busyAction}
+      formRef={formRef}
+      onSubmit={save}
+      onPatch={patch}
+      onPatchMany={patchMany}
+      onApplyRuleType={applyRuleType}
+      onApplyMatchMode={applyMatchMode}
+      onInferName={inferName}
+    />
+  );
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -275,7 +290,7 @@ export function MonitorEditor() {
                 )}
                 {busyAction === "duplicate" ? "Duplicating..." : "Duplicate"}
               </Button>
-              {activeTab === "overview" ? (
+              {!editing ? (
                 <Button variant="default" disabled={busyAction === "run"} onClick={runNow}>
                   {busyAction === "run" ? (
                     <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -303,79 +318,26 @@ export function MonitorEditor() {
       {!loading && !loadError ? (
         isNew ? (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <MonitorEditorForm
-              monitor={monitor}
-              isNew={isNew}
-              busyAction={busyAction}
-              formRef={formRef}
-              onSubmit={save}
-              onPatch={patch}
-              onPatchMany={patchMany}
-              onApplyRuleType={applyRuleType}
-              onApplyMatchMode={applyMatchMode}
-              onInferName={inferName}
-            />
-
+            {editorForm}
             <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
               <MonitorEditorSidebar validation={validation} />
             </aside>
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex border-b border-border">
-              <button
-                type="button"
-                onClick={() => setActiveTab("overview")}
-                className={cn(
-                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px focus:outline-none focus:ring-0",
-                  activeTab === "overview"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
+            <div className="flex border-b border-border" role="tablist" aria-label="Monitor views">
+              <RouteTab to={`/monitors/${id}`} active={!editing}>
                 Overview
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("settings")}
-                className={cn(
-                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-all -mb-px focus:outline-none focus:ring-0",
-                  activeTab === "settings"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
+              </RouteTab>
+              <RouteTab to={`/monitors/${id}/edit`} active={editing}>
                 Settings
-              </button>
+              </RouteTab>
             </div>
 
-            {activeTab === "overview" ? (
-              <div className="space-y-6 animate-in fade-in duration-200">
-                {history && history.length > 0 ? (
-                  <MonitorDashboardTrends attempts={history} monitor={fullMonitor} />
-                ) : null}
-
-                <div className="grid gap-6">
-                  {fullMonitor ? <MonitorState monitor={fullMonitor} /> : null}
-                  <MonitorHistory attempts={history} monitor={fullMonitor} />
-                </div>
-              </div>
-            ) : (
+            {editing ? (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                  <MonitorEditorForm
-                    monitor={monitor}
-                    isNew={isNew}
-                    busyAction={busyAction}
-                    formRef={formRef}
-                    onSubmit={save}
-                    onPatch={patch}
-                    onPatchMany={patchMany}
-                    onApplyRuleType={applyRuleType}
-                    onApplyMatchMode={applyMatchMode}
-                    onInferName={inferName}
-                  />
-
+                  {editorForm}
                   <aside className="space-y-4 xl:sticky xl:top-20 xl:self-start">
                     <MonitorEditorSidebar validation={validation} />
                   </aside>
@@ -386,10 +348,46 @@ export function MonitorEditor() {
                   onRemove={remove}
                 />
               </div>
+            ) : (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {history && history.length > 0 ? (
+                  <MonitorDashboardTrends attempts={history} monitor={fullMonitor} />
+                ) : null}
+
+                <div className="grid gap-6">
+                  {fullMonitor ? <MonitorState monitor={fullMonitor} /> : null}
+                  <MonitorHistory attempts={history} monitor={fullMonitor} />
+                </div>
+              </div>
             )}
           </div>
         )
       ) : null}
     </div>
+  );
+}
+
+function RouteTab({
+  to,
+  active,
+  children
+}: {
+  to: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "-mb-px rounded-sm border-b-2 px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        active
+          ? "border-primary text-primary"
+          : "border-transparent text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {children}
+    </Link>
   );
 }
