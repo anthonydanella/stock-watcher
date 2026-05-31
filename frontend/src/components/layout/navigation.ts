@@ -2,7 +2,7 @@ import { cn } from "../../lib/utils";
 
 export function navLinkClass({ isActive }: { isActive: boolean }) {
   return cn(
-    "relative rounded-md px-2 py-1 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    "relative rounded-md px-2.5 py-1 transition-all hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
     // Tab-style underline: the ::after bar scales in from the center when a link
     // becomes active. The same node persists across route changes, so toggling
     // scale-x animates the swap between the old and new active item.
