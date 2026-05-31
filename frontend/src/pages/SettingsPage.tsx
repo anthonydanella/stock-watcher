@@ -147,9 +147,9 @@ export function SettingsPage() {
         </PanelCard>
       ) : (
         <form className="space-y-6" onSubmit={save}>
-          <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-3 lg:items-stretch">
             <PanelCard className="overflow-visible">
-              <CardContent>
+              <CardContent className="flex flex-1 flex-col gap-5">
                 <div className="grid gap-5">
                   <div className="flex items-center gap-2">
                     <BellRing className="h-4 w-4 text-primary" />
@@ -211,25 +211,23 @@ export function SettingsPage() {
                       Screen), open it from there, then enable web push.
                     </p>
                   ) : null}
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={
-                        Boolean(busyAction) || !settings.webpush_enabled || subscribers === 0
-                      }
-                      onClick={() => runTest("test-push", api.testPush)}
-                    >
-                      <Bell className="h-4 w-4" />
-                      {busyAction === "test-push" ? "Sending" : "Send test"}
-                    </Button>
-                  </div>
+                </div>
+                <div className="mt-auto flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={Boolean(busyAction) || !settings.webpush_enabled || subscribers === 0}
+                    onClick={() => runTest("test-push", api.testPush)}
+                  >
+                    <Bell className="h-4 w-4" />
+                    {busyAction === "test-push" ? "Sending" : "Send test"}
+                  </Button>
                 </div>
               </CardContent>
             </PanelCard>
 
             <PanelCard className="overflow-visible">
-              <CardContent>
+              <CardContent className="flex flex-1 flex-col gap-5">
                 <div className="grid gap-5">
                   <div className="flex items-center gap-2">
                     <Webhook className="h-4 w-4 text-primary" />
@@ -309,23 +307,23 @@ export function SettingsPage() {
                       {webhookHeadersError}
                     </p>
                   ) : null}
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={Boolean(busyAction)}
-                      onClick={() => runTest("test-webhook", api.testWebhook)}
-                    >
-                      <Webhook className="h-4 w-4" />
-                      {busyAction === "test-webhook" ? "Sending" : "Send test"}
-                    </Button>
-                  </div>
+                </div>
+                <div className="mt-auto flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={Boolean(busyAction)}
+                    onClick={() => runTest("test-webhook", api.testWebhook)}
+                  >
+                    <Webhook className="h-4 w-4" />
+                    {busyAction === "test-webhook" ? "Sending" : "Send test"}
+                  </Button>
                 </div>
               </CardContent>
             </PanelCard>
 
             <PanelCard className="overflow-visible md:col-span-2 lg:col-span-1">
-              <CardContent className="@container">
+              <CardContent className="@container flex flex-1 flex-col gap-5">
                 <div className="grid gap-5 @sm:grid-cols-2">
                   <div className="flex items-center gap-2 @sm:col-span-2">
                     <Bell className="h-4 w-4 text-primary" />
@@ -403,17 +401,17 @@ export function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </FormField>
-                  <div className="@sm:col-span-2 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={Boolean(busyAction)}
-                      onClick={() => runTest("test-ntfy", api.testNotification)}
-                    >
-                      <Bell className="h-4 w-4" />
-                      {busyAction === "test-ntfy" ? "Sending" : "Send test"}
-                    </Button>
-                  </div>
+                </div>
+                <div className="mt-auto flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={Boolean(busyAction)}
+                    onClick={() => runTest("test-ntfy", api.testNotification)}
+                  >
+                    <Bell className="h-4 w-4" />
+                    {busyAction === "test-ntfy" ? "Sending" : "Send test"}
+                  </Button>
                 </div>
               </CardContent>
             </PanelCard>
