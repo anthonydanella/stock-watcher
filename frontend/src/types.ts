@@ -54,16 +54,27 @@ export type CheckAttempt = {
   quantity: number | null;
 };
 
+export type WebhookFormat = "custom" | "discord" | "slack";
+
 export type AppSettings = {
   ntfy_enabled: boolean;
   ntfy_server: string;
   ntfy_topic: string;
   ntfy_token: string;
   ntfy_priority: string;
+  webpush_enabled: boolean;
+  webhook_enabled: boolean;
+  webhook_url: string;
+  webhook_format: WebhookFormat;
+  webhook_headers: string;
   llm_base_url: string;
   llm_model: string;
   llm_extra_params: string;
   llm_configured?: boolean;
+  // Read-only, server-provided Web Push status.
+  webpush_public_key?: string;
+  webpush_configured?: boolean;
+  webpush_subscriptions?: number;
 };
 
 export type RuleSuggestion = {

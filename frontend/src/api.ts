@@ -66,6 +66,19 @@ export const api = {
     request<AppSettings>("/api/settings", { method: "PUT", body: JSON.stringify(settings) }),
   testNotification: () =>
     request<{ sent: boolean }>("/api/settings/test-notification", { method: "POST" }),
+  testWebhook: () => request<{ sent: boolean }>("/api/webhook/test", { method: "POST" }),
+  pushPublicKey: () => request<{ key: string; configured: boolean }>("/api/push/public-key"),
+  pushSubscribe: (subscription: PushSubscriptionJSON) =>
+    request<{ ok: boolean }>("/api/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify(subscription)
+    }),
+  pushUnsubscribe: (endpoint: string) =>
+    request<{ ok: boolean }>("/api/push/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint })
+    }),
+  testPush: () => request<{ sent: boolean }>("/api/push/test", { method: "POST" }),
   schedulerStatus: () => request<SchedulerStatus>("/api/scheduler/status"),
   events: () => request<EventRow[]>("/api/events"),
   notificationRules: () => request<NotificationRule[]>("/api/notification-rules"),

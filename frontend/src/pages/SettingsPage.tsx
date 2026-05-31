@@ -1,4 +1,4 @@
-import { Bell, Sparkles } from "lucide-react";
+import { Bell, BellRing, Sparkles, Webhook } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { InfoTooltip } from "../components/shared/InfoTooltip";
 import { PageHeader } from "../components/shared/PageHeader";
 import { PanelCard } from "../components/shared/PanelCard";
 import { EditorSkeleton } from "../components/shared/Skeletons";
+import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -20,9 +21,12 @@ import {
   SelectValue
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import { isStandalone, usePushSubscription } from "../hooks/usePushSubscription";
 import { errorMessage } from "../lib/format";
 import { cn } from "../lib/utils";
 import type { AppSettings } from "../types";
+
+type BusyAction = "save" | "test-ntfy" | "test-webhook" | "test-push" | null;
 
 const DEFAULT_SETTINGS: AppSettings = {
   ntfy_enabled: false,
@@ -30,50 +34,55 @@ const DEFAULT_SETTINGS: AppSettings = {
   ntfy_topic: "",
   ntfy_token: "",
   ntfy_priority: "default",
+  webpush_enabled: true,
+  webhook_enabled: false,
+  webhook_url: "",
+  webhook_format: "custom",
+  webhook_headers: "",
   llm_base_url: "https://api.openai.com/v1",
   llm_model: "",
   llm_extra_params: "",
-  llm_configured: false
+  llm_configured: false,
+  webpush_public_key: "",
+  webpush_configured: false,
+  webpush_subscriptions: 0
 };
 
 function mergeSettings(next: Partial<AppSettings>): AppSettings {
-  return {
-    ntfy_enabled: next.ntfy_enabled ?? DEFAULT_SETTINGS.ntfy_enabled,
-    ntfy_server: next.ntfy_server ?? DEFAULT_SETTINGS.ntfy_server,
-    ntfy_topic: next.ntfy_topic ?? DEFAULT_SETTINGS.ntfy_topic,
-    ntfy_token: next.ntfy_token ?? DEFAULT_SETTINGS.ntfy_token,
-    ntfy_priority: next.ntfy_priority ?? DEFAULT_SETTINGS.ntfy_priority,
-    llm_base_url: next.llm_base_url ?? DEFAULT_SETTINGS.llm_base_url,
-    llm_model: next.llm_model ?? DEFAULT_SETTINGS.llm_model,
-    llm_extra_params: next.llm_extra_params ?? DEFAULT_SETTINGS.llm_extra_params,
-    llm_configured: next.llm_configured ?? DEFAULT_SETTINGS.llm_configured
-  };
+  return { ...DEFAULT_SETTINGS, ...next };
 }
+
+const IS_IOS = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 export function SettingsPage() {
   const [settings, setSettings] = React.useState<AppSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = React.useState(true);
-  const [busyAction, setBusyAction] = React.useState<"save" | "test" | null>(null);
+  const [busyAction, setBusyAction] = React.useState<BusyAction>(null);
   const [extraParamsError, setExtraParamsError] = React.useState("");
+  const [webhookHeadersError, setWebhookHeadersError] = React.useState("");
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load settings once on mount
+  const push = usePushSubscription(settings.webpush_public_key);
+
+  const loadSettings = React.useCallback(async () => {
+    const next = await api.settings();
+    const merged = mergeSettings(next);
+    setSettings(merged);
+    setExtraParamsError(jsonObjectError(merged.llm_extra_params));
+    setWebhookHeadersError(jsonObjectError(merged.webhook_headers));
+    return merged;
+  }, []);
+
   React.useEffect(() => {
-    api
-      .settings()
-      .then((next) => {
-        const merged = mergeSettings(next);
-        setSettings(merged);
-        validateExtraParams(merged.llm_extra_params);
-      })
+    loadSettings()
       .catch((exc) => toast.error(errorMessage(exc, "Could not load settings")))
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadSettings]);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (busyAction) return;
-    if (extraParamsError) {
-      toast.error(extraParamsError);
+    if (extraParamsError || webhookHeadersError) {
+      toast.error(extraParamsError || webhookHeadersError);
       return;
     }
     setBusyAction("save");
@@ -88,11 +97,11 @@ export function SettingsPage() {
     }
   }
 
-  async function testNotification() {
+  async function runTest(action: Exclude<BusyAction, "save" | null>, send: () => Promise<unknown>) {
     if (busyAction) return;
-    setBusyAction("test");
+    setBusyAction(action);
     try {
-      await api.testNotification();
+      await send();
       toast.success("Test notification sent");
     } catch (exc) {
       toast.error(errorMessage(exc, "Test notification failed"));
@@ -101,29 +110,34 @@ export function SettingsPage() {
     }
   }
 
-  function validateExtraParams(value: string) {
-    const text = value.trim();
-    if (!text) {
-      setExtraParamsError("");
-      return;
-    }
+  async function enableDevice() {
     try {
-      const parsed = JSON.parse(text);
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-        setExtraParamsError("Extra params must be a JSON object.");
-      } else {
-        setExtraParamsError("");
-      }
+      await push.subscribe();
+      toast.success("Web push enabled on this device");
+      await loadSettings();
     } catch (exc) {
-      setExtraParamsError(`Invalid JSON: ${(exc as Error).message}`);
+      toast.error(errorMessage(exc, "Could not enable web push"));
     }
   }
+
+  async function disableDevice() {
+    try {
+      await push.unsubscribe();
+      toast.success("Web push disabled on this device");
+      await loadSettings();
+    } catch (exc) {
+      toast.error(errorMessage(exc, "Could not disable web push"));
+    }
+  }
+
+  const subscribers = settings.webpush_subscriptions ?? 0;
+  const showInstallHint = IS_IOS && !isStandalone() && push.state !== "unsupported";
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Configure ntfy alerts and the LLM used to draft quantity regexes."
+        description="Configure notification channels and the LLM used to draft quantity regexes."
       />
       {loading ? (
         <PanelCard className="overflow-visible">
@@ -137,14 +151,191 @@ export function SettingsPage() {
             <CardContent>
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="flex items-center gap-2 md:col-span-2">
-                  <Bell className="h-4 w-4 text-primary" />
+                  <BellRing className="h-4 w-4 text-primary" />
                   <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Notifications (ntfy)
+                    Web push
+                  </h2>
+                  <Badge variant="secondary">Default</Badge>
+                  <InfoTooltip side="right">
+                    Push notifications straight to this browser or installed app, even when it's
+                    closed — no extra account or app. On iPhone/iPad you must add Stock Watcher to
+                    the Home Screen first (iOS 16.4+ only allows push for installed apps).
+                  </InfoTooltip>
+                </div>
+                <ToggleField
+                  label="Enable web push"
+                  description="Deliver alerts to every subscribed device."
+                  checked={settings.webpush_enabled}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, webpush_enabled: checked })
+                  }
+                  className="md:col-span-2"
+                />
+                <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3 text-sm">
+                  <div className="grid gap-1">
+                    <span className="font-medium">This device</span>
+                    <span className="text-xs text-muted-foreground">
+                      {deviceStatusText(push.state, settings.webpush_configured)} · {subscribers}{" "}
+                      {subscribers === 1 ? "device" : "devices"} subscribed
+                    </span>
+                  </div>
+                  {push.state === "subscribed" ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={push.busy}
+                      onClick={disableDevice}
+                    >
+                      {push.busy ? "Working" : "Disable on this device"}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={
+                        push.busy ||
+                        push.state === "unsupported" ||
+                        push.state === "denied" ||
+                        !settings.webpush_configured
+                      }
+                      onClick={enableDevice}
+                    >
+                      <BellRing className="h-4 w-4" />
+                      {push.busy ? "Enabling" : "Enable on this device"}
+                    </Button>
+                  )}
+                </div>
+                {showInstallHint ? (
+                  <p className="md:col-span-2 text-xs text-amber-700 dark:text-amber-300">
+                    On iPhone/iPad, add Stock Watcher to your Home Screen (Share → Add to Home
+                    Screen), open it from there, then enable web push.
+                  </p>
+                ) : null}
+                <div className="md:col-span-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={Boolean(busyAction) || !settings.webpush_enabled || subscribers === 0}
+                    onClick={() => runTest("test-push", api.testPush)}
+                  >
+                    <Bell className="h-4 w-4" />
+                    {busyAction === "test-push" ? "Sending" : "Send test"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </PanelCard>
+
+          <PanelCard className="overflow-visible">
+            <CardContent>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <Webhook className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Webhook
                   </h2>
                   <InfoTooltip side="right">
-                    ntfy is an open-source push notification service. Set a topic, subscribe on your
-                    phone or browser via the ntfy app, and the stock watcher pushes alerts when
-                    status changes or errors repeat.
+                    POSTs a JSON payload to any URL on each alert. Pick a preset to match the
+                    target: Discord and Slack incoming webhooks, or generic JSON for Home Assistant,
+                    Zapier, n8n, and the like.
+                  </InfoTooltip>
+                </div>
+                <ToggleField
+                  label="Enable webhook"
+                  description="POST alerts to an external URL."
+                  checked={settings.webhook_enabled}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, webhook_enabled: checked })
+                  }
+                  className="md:col-span-2"
+                />
+                <FormField label="Webhook URL" className="md:col-span-2">
+                  <Input
+                    type="url"
+                    value={settings.webhook_url}
+                    onChange={(event) =>
+                      setSettings({ ...settings, webhook_url: event.target.value })
+                    }
+                    placeholder="https://discord.com/api/webhooks/…"
+                  />
+                </FormField>
+                <FormField
+                  label="Format"
+                  tooltip="Shapes the request body. Generic JSON sends { title, message, status, monitor, url, tags }."
+                >
+                  <Select
+                    value={settings.webhook_format}
+                    onValueChange={(value) =>
+                      setSettings({
+                        ...settings,
+                        webhook_format: (value as AppSettings["webhook_format"]) ?? "custom"
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Generic JSON" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="custom">
+                          Generic JSON (Home Assistant, Zapier…)
+                        </SelectItem>
+                        <SelectItem value="discord">Discord</SelectItem>
+                        <SelectItem value="slack">Slack</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <FormField
+                  label="Extra headers (JSON)"
+                  description='Optional. Merged into the request, e.g. { "Authorization": "Bearer …" }.'
+                  tooltip="JSON object of extra HTTP headers, useful for authenticated webhooks. Leave blank for none."
+                  className="md:col-span-2"
+                >
+                  <Textarea
+                    className="font-mono"
+                    rows={2}
+                    value={settings.webhook_headers}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setSettings({ ...settings, webhook_headers: value });
+                      setWebhookHeadersError(jsonObjectError(value));
+                    }}
+                    placeholder='{ "Authorization": "Bearer secret" }'
+                  />
+                </FormField>
+                {webhookHeadersError ? (
+                  <p className="md:col-span-2 text-xs text-amber-700 dark:text-amber-300">
+                    {webhookHeadersError}
+                  </p>
+                ) : null}
+                <div className="md:col-span-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={Boolean(busyAction)}
+                    onClick={() => runTest("test-webhook", api.testWebhook)}
+                  >
+                    <Webhook className="h-4 w-4" />
+                    {busyAction === "test-webhook" ? "Sending" : "Send test"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </PanelCard>
+
+          <PanelCard className="overflow-visible">
+            <CardContent>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <Bell className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    ntfy
+                  </h2>
+                  <InfoTooltip side="right">
+                    ntfy is an open-source push service. Set a topic, subscribe on your phone or
+                    browser via the ntfy app, and Stock Watcher pushes alerts when status changes or
+                    errors repeat.
                   </InfoTooltip>
                 </div>
                 <ToggleField
@@ -215,10 +406,10 @@ export function SettingsPage() {
                     type="button"
                     variant="secondary"
                     disabled={Boolean(busyAction)}
-                    onClick={testNotification}
+                    onClick={() => runTest("test-ntfy", api.testNotification)}
                   >
                     <Bell className="h-4 w-4" />
-                    {busyAction === "test" ? "Sending" : "Send test"}
+                    {busyAction === "test-ntfy" ? "Sending" : "Send test"}
                   </Button>
                 </div>
               </div>
@@ -300,7 +491,7 @@ export function SettingsPage() {
                     onChange={(event) => {
                       const value = event.target.value;
                       setSettings({ ...settings, llm_extra_params: value });
-                      validateExtraParams(value);
+                      setExtraParamsError(jsonObjectError(value));
                     }}
                     placeholder='{ "temperature": 0.2 }'
                   />
@@ -315,7 +506,12 @@ export function SettingsPage() {
           </PanelCard>
 
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={Boolean(busyAction) || Boolean(extraParamsError)}>
+            <Button
+              type="submit"
+              disabled={
+                Boolean(busyAction) || Boolean(extraParamsError) || Boolean(webhookHeadersError)
+              }
+            >
               {busyAction === "save" ? "Saving" : "Save settings"}
             </Button>
           </div>
@@ -323,4 +519,37 @@ export function SettingsPage() {
       )}
     </div>
   );
+}
+
+function deviceStatusText(
+  state: ReturnType<typeof usePushSubscription>["state"],
+  configured?: boolean
+) {
+  if (!configured) return "Server push keys unavailable";
+  switch (state) {
+    case "unsupported":
+      return "This browser doesn't support web push";
+    case "denied":
+      return "Notifications are blocked in your browser settings";
+    case "subscribed":
+      return "Subscribed";
+    case "loading":
+      return "Checking…";
+    default:
+      return "Not subscribed";
+  }
+}
+
+function jsonObjectError(value: string): string {
+  const text = value.trim();
+  if (!text) return "";
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return "Must be a JSON object.";
+    }
+    return "";
+  } catch (exc) {
+    return `Invalid JSON: ${(exc as Error).message}`;
+  }
 }
