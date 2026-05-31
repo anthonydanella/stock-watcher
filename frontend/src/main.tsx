@@ -16,3 +16,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </ThemeProvider>
   </React.StrictMode>
 );
+
+// Register the service worker (offline app shell + Web Push) in production only,
+// so the Vite dev server's HMR is never shadowed by a cached shell.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  });
+}
