@@ -2,8 +2,10 @@ import {
   Activity,
   Bell,
   BellOff,
+  CheckCircle2,
   ChevronRight,
   Clock,
+  PackageSearch,
   Plus,
   RefreshCw,
   ShieldAlert
@@ -87,7 +89,7 @@ export function Dashboard() {
           </p>
         </Alert>
       ) : null}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border pb-3">
+      <div className="flex flex-wrap items-center gap-x-1 gap-y-1 border-b border-border pb-3">
         <Metric title="Monitors" value={counts.total} icon={<Activity className="h-3.5 w-3.5" />} />
         <Metric
           title="In stock"
@@ -116,9 +118,15 @@ export function Dashboard() {
           </LinkButton>
         </SectionHeader>
         {counts.total === 0 ? (
-          <EmptyState message="No monitors yet. Add one to start checking stock." />
+          <EmptyState
+            icon={<PackageSearch className="h-6 w-6" />}
+            message="No monitors yet. Add one to start checking stock."
+          />
         ) : attention.length === 0 ? (
-          <EmptyState message="All clear — every monitor is healthy and nothing needs attention." />
+          <EmptyState
+            icon={<CheckCircle2 className="h-6 w-6 text-emerald-500/80" />}
+            message="All clear — every monitor is healthy and nothing needs attention."
+          />
         ) : (
           <MonitorCards monitors={attention} onChanged={refresh} />
         )}
