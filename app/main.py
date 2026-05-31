@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Awaitable, Callable
 
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -27,6 +27,8 @@ from app.scheduler import Scheduler
 from app.schemas import (
     MonitorPayload,
     NotificationRulePayload,
+    PushSubscriptionPayload,
+    PushUnsubscribePayload,
     RuleSuggestPayload,
     SettingsPayload,
 )
@@ -163,7 +165,7 @@ def api_monitor_screenshot(monitor_id: int) -> FileResponse:
 
 @app.get("/api/settings")
 def api_get_settings() -> dict[str, Any]:
-    return settings_to_dict(repo.get_settings(), llm_configured=bool(settings.llm_api_key))
+    return _settings_response(repo.get_settings())
 
 
 @app.put("/api/settings")
@@ -171,7 +173,7 @@ def api_save_settings(payload: SettingsPayload) -> dict[str, Any]:
     data = payload.model_dump()
     app_settings = AppSettings(**data)
     repo.save_settings(app_settings)
-    return settings_to_dict(repo.get_settings(), llm_configured=bool(settings.llm_api_key))
+    return _settings_response(repo.get_settings())
 
 
 @app.post("/api/settings/test-notification")
@@ -208,6 +210,75 @@ async def api_test_notification() -> dict[str, bool]:
         )
     repo.add_event(None, EVENT_MANUAL, "ntfy test notification sent")
     return {"sent": True}
+
+
+@app.get("/api/push/public-key")
+def api_push_public_key() -> dict[str, Any]:
+    key = checker.webpush.public_key()
+    return {"key": key, "configured": bool(key)}
+
+
+@app.post("/api/push/subscribe", status_code=201)
+def api_push_subscribe(payload: PushSubscriptionPayload, request: Request) -> dict[str, bool]:
+    repo.add_push_subscription(
+        str(payload.endpoint),
+        payload.keys.p256dh,
+        payload.keys.auth,
+        user_agent=request.headers.get("user-agent", "")[:300],
+    )
+    return {"ok": True}
+
+
+@app.post("/api/push/unsubscribe")
+def api_push_unsubscribe(payload: PushUnsubscribePayload) -> dict[str, bool]:
+    repo.delete_push_subscription(str(payload.endpoint))
+    return {"ok": True}
+
+
+@app.post("/api/push/test")
+async def api_push_test() -> dict[str, bool]:
+    app_settings = repo.get_settings()
+    if not app_settings.webpush_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Web Push notifications are disabled"
+        )
+    if not checker.webpush.available:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Web Push is not available on the server",
+        )
+    if repo.count_push_subscriptions() == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No devices are subscribed to Web Push yet",
+        )
+    sent = await _run_test_channel(
+        checker.webpush.send,
+        app_settings,
+        "Web Push",
+        "Web Push test notification sent successfully.",
+    )
+    return {"sent": sent}
+
+
+@app.post("/api/webhook/test")
+async def api_webhook_test() -> dict[str, bool]:
+    app_settings = repo.get_settings()
+    if not app_settings.webhook_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Webhook notifications are disabled"
+        )
+    if not app_settings.webhook_url.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Webhook URL is required"
+        )
+    sent = await _run_test_channel(
+        checker.webhook.send,
+        app_settings,
+        "Webhook",
+        "Webhook test notification sent successfully.",
+    )
+    return {"sent": sent}
 
 
 @app.get("/api/events")
@@ -295,8 +366,30 @@ def api_delete_notification_rule(rule_id: int) -> Response:
     return Response(status_code=204)
 
 
+# Static assets that the PWA layer ships at the dist root (not under /assets):
+# the manifest, service worker, icons, and favicon. mimetypes does not know
+# .webmanifest, and the service worker must be served with a JS content type.
+_STATIC_MEDIA_TYPES = {
+    ".webmanifest": "application/manifest+json",
+    ".js": "text/javascript",
+    ".json": "application/json",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".ico": "image/x-icon",
+}
+
+
 @app.get("/{path:path}")
 def spa(path: str) -> FileResponse:
+    # Serve real build artifacts at the dist root (sw.js, manifest.webmanifest,
+    # icons, favicon) so the PWA works; everything else falls through to the SPA
+    # entrypoint for client-side routing.
+    if path and not path.startswith("api/"):
+        dist_root = FRONTEND_DIST.resolve()
+        candidate = (dist_root / path).resolve()
+        if candidate.is_file() and dist_root in candidate.parents:
+            media_type = _STATIC_MEDIA_TYPES.get(candidate.suffix.lower())
+            return FileResponse(candidate, media_type=media_type)
     index = FRONTEND_DIST / "index.html"
     if index.exists():
         return FileResponse(index)
@@ -350,3 +443,47 @@ def _get_monitor_dict(monitor_id: int) -> dict[str, Any]:
     monitor = _ensure_monitor(monitor_id)
     quantities = repo.recent_quantities(monitor_id) if monitor.stock_mode == "quantity" else []
     return monitor_to_dict(monitor, settings, recent_quantities=quantities)
+
+
+def _settings_response(app_settings: AppSettings) -> dict[str, Any]:
+    return settings_to_dict(
+        app_settings,
+        llm_configured=bool(settings.llm_api_key),
+        webpush_public_key=checker.webpush.public_key(),
+        webpush_subscriptions=repo.count_push_subscriptions(),
+    )
+
+
+async def _run_test_channel(
+    send: Callable[[AppSettings, Monitor | None, str, str, str], Awaitable[bool]],
+    app_settings: AppSettings,
+    label: str,
+    message: str,
+) -> bool:
+    """Send a one-off test notification through a single channel.
+
+    Records an event and raises 503 on failure so the Settings page surfaces a
+    clear error, mirroring the ntfy test endpoint.
+    """
+    try:
+        sent = await send(app_settings, None, "Stock Watcher test", message, "bell")
+    except Exception as exc:  # noqa: BLE001 - surface delivery failures as 503
+        repo.add_event(
+            None, EVENT_NOTIFICATION_ERROR, f"{label} test notification failed: {exc}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"{label} test notification failed",
+        ) from exc
+    if not sent:
+        repo.add_event(
+            None,
+            EVENT_NOTIFICATION_ERROR,
+            f"{label} test notification failed: delivery was rejected or unavailable",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"{label} test notification failed",
+        )
+    repo.add_event(None, EVENT_MANUAL, f"{label} test notification sent")
+    return True

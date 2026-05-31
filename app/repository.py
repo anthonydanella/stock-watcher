@@ -8,7 +8,15 @@ from typing import Any
 
 from app.config import Settings
 from app.db import connect
-from app.models import AppSettings, CheckAttempt, Monitor, NotificationRule, parse_dt, utcnow
+from app.models import (
+    AppSettings,
+    CheckAttempt,
+    Monitor,
+    NotificationRule,
+    PushSubscription,
+    parse_dt,
+    utcnow,
+)
 
 MONITOR_UPDATE_COLUMNS = {
     "name",
@@ -120,6 +128,17 @@ def notification_rule_from_row(row: sqlite3.Row) -> NotificationRule:
         cooldown_minutes=int(row["cooldown_minutes"]),
         last_triggered_at=parse_dt(row["last_triggered_at"]),
         last_satisfied=bool(row["last_satisfied"]),
+    )
+
+
+def push_subscription_from_row(row: sqlite3.Row) -> PushSubscription:
+    return PushSubscription(
+        id=row["id"],
+        endpoint=row["endpoint"],
+        p256dh=row["p256dh"],
+        auth=row["auth"],
+        user_agent=row["user_agent"],
+        created_at=parse_dt(row["created_at"]),
     )
 
 
@@ -387,6 +406,11 @@ class Repository:
             ntfy_topic=data.get("ntfy_topic", self.settings.default_ntfy_topic),
             ntfy_token=data.get("ntfy_token", ""),
             ntfy_priority=data.get("ntfy_priority", "default"),
+            webpush_enabled=data.get("webpush_enabled", "1") == "1",
+            webhook_enabled=data.get("webhook_enabled", "0") == "1",
+            webhook_url=data.get("webhook_url", ""),
+            webhook_format=data.get("webhook_format", "custom"),
+            webhook_headers=data.get("webhook_headers", ""),
             llm_base_url=data.get("llm_base_url", "https://api.openai.com/v1"),
             llm_model=data.get("llm_model", ""),
             llm_extra_params=data.get("llm_extra_params", ""),
@@ -474,6 +498,38 @@ class Repository:
         )
         self.conn.commit()
 
+    def list_push_subscriptions(self) -> list[PushSubscription]:
+        rows = self.conn.execute(
+            "SELECT * FROM push_subscriptions ORDER BY id"
+        ).fetchall()
+        return [push_subscription_from_row(row) for row in rows]
+
+    def count_push_subscriptions(self) -> int:
+        row = self.conn.execute("SELECT COUNT(*) AS count FROM push_subscriptions").fetchone()
+        return int(row["count"])
+
+    def add_push_subscription(
+        self, endpoint: str, p256dh: str, auth: str, user_agent: str = ""
+    ) -> None:
+        # Re-subscribing from the same browser yields the same endpoint; refresh
+        # the keys in place rather than erroring on the UNIQUE constraint.
+        self.conn.execute(
+            """
+            INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_agent)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(endpoint) DO UPDATE SET
+                p256dh = excluded.p256dh,
+                auth = excluded.auth,
+                user_agent = excluded.user_agent
+            """,
+            (endpoint, p256dh, auth, user_agent),
+        )
+        self.conn.commit()
+
+    def delete_push_subscription(self, endpoint: str) -> None:
+        self.conn.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,))
+        self.conn.commit()
+
     def save_settings(self, app_settings: AppSettings) -> None:
         values = {
             "ntfy_enabled": "1" if app_settings.ntfy_enabled else "0",
@@ -481,6 +537,11 @@ class Repository:
             "ntfy_topic": app_settings.ntfy_topic.strip(),
             "ntfy_token": app_settings.ntfy_token.strip(),
             "ntfy_priority": app_settings.ntfy_priority,
+            "webpush_enabled": "1" if app_settings.webpush_enabled else "0",
+            "webhook_enabled": "1" if app_settings.webhook_enabled else "0",
+            "webhook_url": app_settings.webhook_url.strip(),
+            "webhook_format": app_settings.webhook_format.strip() or "custom",
+            "webhook_headers": app_settings.webhook_headers.strip(),
             "llm_base_url": app_settings.llm_base_url.strip().rstrip("/"),
             "llm_model": app_settings.llm_model.strip(),
             "llm_extra_params": app_settings.llm_extra_params.strip(),

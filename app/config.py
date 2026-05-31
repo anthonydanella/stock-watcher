@@ -50,6 +50,10 @@ class Settings:
     ntfy_retry_backoff_seconds: float
     llm_api_key: str
     llm_html_char_limit: int
+    # VAPID `sub` claim for Web Push: a mailto:/https: contact some push
+    # services require. The keypair itself is generated and stored under
+    # DATA_DIR on first use; only the contact is configurable.
+    webpush_contact: str = "mailto:admin@example.com"
 
 
 def load_settings() -> Settings:
@@ -70,6 +74,8 @@ def load_settings() -> Settings:
         ntfy_retry_backoff_seconds=max(0.0, _float_env("NTFY_RETRY_BACKOFF_SECONDS", 0.5)),
         llm_api_key=os.getenv("LLM_API_KEY", "").strip(),
         llm_html_char_limit=max(4_000, _int_env("LLM_HTML_CHAR_LIMIT", 200_000)),
+        webpush_contact=os.getenv("WEBPUSH_CONTACT", "mailto:admin@example.com").strip()
+        or "mailto:admin@example.com",
     )
 
 

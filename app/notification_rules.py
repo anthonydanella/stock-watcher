@@ -112,19 +112,15 @@ async def evaluate_rules(
             title, message = _build_message(rule, evaluation, monitors_by_id)
             repo.add_event(None, EVENT_ALERT_TRIGGERED, f"{rule.name}: {message}")
             try:
-                sent = await notify(app_settings, None, title, message, "bell")
+                # `notify` fans out to every enabled channel and records its own
+                # per-channel delivery failures, so the loop only needs to guard
+                # against an unexpected raise.
+                await notify(app_settings, None, title, message, "bell")
             except Exception as exc:  # noqa: BLE001 - keep evaluation loop alive
                 repo.add_event(
                     None,
                     EVENT_NOTIFICATION_ERROR,
                     f"Alert rule '{rule.name}' notification failed: {exc}",
-                )
-                sent = False
-            if not sent and app_settings.ntfy_enabled and app_settings.ntfy_topic:
-                repo.add_event(
-                    None,
-                    EVENT_NOTIFICATION_ERROR,
-                    f"Alert rule '{rule.name}' notification failed: delivery was rejected or unavailable",
                 )
 
         if evaluation.satisfied != previously_satisfied or (

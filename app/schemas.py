@@ -198,25 +198,61 @@ class SettingsPayload(BaseModel):
     ntfy_topic: str = ""
     ntfy_token: str = ""
     ntfy_priority: str = "default"
+    webpush_enabled: bool = True
+    webhook_enabled: bool = False
+    webhook_url: str = ""
+    webhook_format: Literal["custom", "discord", "slack"] = "custom"
+    webhook_headers: str = ""
     llm_base_url: str = "https://api.openai.com/v1"
     llm_model: str = ""
     llm_extra_params: str = ""
 
+    @field_validator("webhook_url")
+    @classmethod
+    def webhook_url_must_be_http(cls, value: str) -> str:
+        text = (value or "").strip()
+        if text and not text.lower().startswith(("http://", "https://")):
+            raise ValueError("Webhook URL must start with http:// or https://")
+        return text
+
+    @field_validator("webhook_headers")
+    @classmethod
+    def webhook_headers_must_be_json(cls, value: str) -> str:
+        return _validate_json_object(value, "Webhook headers")
+
     @field_validator("llm_extra_params")
     @classmethod
     def extra_params_must_be_json(cls, value: str) -> str:
-        text = (value or "").strip()
-        if not text:
-            return ""
-        import json as _json
+        return _validate_json_object(value, "Extra params")
 
-        try:
-            parsed = _json.loads(text)
-        except _json.JSONDecodeError as exc:
-            raise ValueError(f"Extra params must be valid JSON: {exc}") from exc
-        if not isinstance(parsed, dict):
-            raise ValueError("Extra params must be a JSON object")
-        return text
+
+def _validate_json_object(value: str, label: str) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    import json as _json
+
+    try:
+        parsed = _json.loads(text)
+    except _json.JSONDecodeError as exc:
+        raise ValueError(f"{label} must be valid JSON: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{label} must be a JSON object")
+    return text
+
+
+class PushKeysPayload(BaseModel):
+    p256dh: str = Field(min_length=1, max_length=200)
+    auth: str = Field(min_length=1, max_length=100)
+
+
+class PushSubscriptionPayload(BaseModel):
+    endpoint: HttpUrl
+    keys: PushKeysPayload
+
+
+class PushUnsubscribePayload(BaseModel):
+    endpoint: HttpUrl
 
 
 class RuleSuggestPayload(BaseModel):

@@ -277,6 +277,146 @@ def test_monitor_defaults_use_browser_and_text_rule(monkeypatch, tmp_path) -> No
     assert created["notify_on_challenge"] is True
 
 
+def test_settings_defaults_expose_channels(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    client = TestClient(app)
+
+    body = client.get("/api/settings").json()
+
+    # Web Push is the default channel and the server self-provisions VAPID keys.
+    assert body["webpush_enabled"] is True
+    assert body["webpush_configured"] is True
+    assert body["webpush_public_key"]
+    assert body["webpush_subscriptions"] == 0
+    assert body["webhook_enabled"] is False
+    assert body["webhook_format"] == "custom"
+
+
+def test_settings_round_trip_webhook_and_webpush(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    client = TestClient(app)
+
+    saved = client.put(
+        "/api/settings",
+        json={
+            "ntfy_enabled": False,
+            "ntfy_server": "https://ntfy.sh",
+            "ntfy_topic": "",
+            "ntfy_token": "",
+            "ntfy_priority": "default",
+            "webpush_enabled": False,
+            "webhook_enabled": True,
+            "webhook_url": "https://hooks.example.com/abc",
+            "webhook_format": "discord",
+            "webhook_headers": '{"X-Token": "1"}',
+        },
+    )
+
+    assert saved.status_code == 200
+    body = client.get("/api/settings").json()
+    assert body["webpush_enabled"] is False
+    assert body["webhook_enabled"] is True
+    assert body["webhook_url"] == "https://hooks.example.com/abc"
+    assert body["webhook_format"] == "discord"
+    assert body["webhook_headers"] == '{"X-Token": "1"}'
+
+
+def test_settings_rejects_bad_webhook(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    client = TestClient(app)
+
+    bad_url = client.put("/api/settings", json={"webhook_url": "ftp://nope"})
+    assert bad_url.status_code == 422
+
+    bad_headers = client.put("/api/settings", json={"webhook_headers": "not json"})
+    assert bad_headers.status_code == 422
+
+
+def test_push_subscribe_and_unsubscribe(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    client = TestClient(app)
+
+    key = client.get("/api/push/public-key").json()
+    assert key["configured"] is True and key["key"]
+
+    subscription = {
+        "endpoint": "https://push.example.com/abc",
+        "keys": {"p256dh": "the-p256dh-key", "auth": "the-auth"},
+    }
+    subscribed = client.post("/api/push/subscribe", json=subscription)
+    assert subscribed.status_code == 201
+    assert client.get("/api/settings").json()["webpush_subscriptions"] == 1
+
+    # Re-subscribing the same endpoint is idempotent.
+    client.post("/api/push/subscribe", json=subscription)
+    assert client.get("/api/settings").json()["webpush_subscriptions"] == 1
+
+    removed = client.post(
+        "/api/push/unsubscribe", json={"endpoint": "https://push.example.com/abc"}
+    )
+    assert removed.status_code == 200
+    assert client.get("/api/settings").json()["webpush_subscriptions"] == 0
+
+
+def test_push_test_requires_subscription(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    client = TestClient(app)
+
+    no_subs = client.post("/api/push/test")
+    assert no_subs.status_code == 400
+    assert no_subs.json()["detail"] == "No devices are subscribed to Web Push yet"
+
+
+def test_push_test_delivers(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    main_module = importlib.import_module("app.main")
+    client = TestClient(app)
+    client.post(
+        "/api/push/subscribe",
+        json={
+            "endpoint": "https://push.example.com/abc",
+            "keys": {"p256dh": "the-p256dh-key", "auth": "the-auth"},
+        },
+    )
+
+    async def fake_send(*args, **kwargs) -> bool:  # noqa: ANN002, ANN003
+        return True
+
+    monkeypatch.setattr(main_module.checker.webpush, "send", fake_send)
+
+    response = client.post("/api/push/test")
+    assert response.status_code == 200
+    assert response.json() == {"sent": True}
+    assert any(
+        "Web Push test notification sent" in event["message"]
+        for event in client.get("/api/events").json()
+    )
+
+
+def test_webhook_test_validates_and_delivers(monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    app = load_app(monkeypatch, tmp_path)
+    main_module = importlib.import_module("app.main")
+    client = TestClient(app)
+
+    disabled = client.post("/api/webhook/test")
+    assert disabled.status_code == 400
+    assert disabled.json()["detail"] == "Webhook notifications are disabled"
+
+    fake = FakeNtfy()
+    monkeypatch.setattr(main_module.checker, "webhook", fake)
+    client.put(
+        "/api/settings",
+        json={"webhook_enabled": True, "webhook_url": "https://hooks.example.com/abc"},
+    )
+
+    response = client.post("/api/webhook/test")
+    assert response.status_code == 200
+    assert response.json() == {"sent": True}
+    assert fake.messages == [
+        ("Stock Watcher test", "Webhook test notification sent successfully.", "bell")
+    ]
+
+
 def test_monitor_notification_toggles_persist(monkeypatch, tmp_path) -> None:  # noqa: ANN001
     app = load_app(monkeypatch, tmp_path)
     client = TestClient(app)

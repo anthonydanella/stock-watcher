@@ -29,6 +29,7 @@ from app.models import (
     STATUS_UNKNOWN,
     STOCK_MODE_QUANTITY,
     STOCK_STATUSES,
+    AppSettings,
     Monitor,
     utcnow,
 )
@@ -38,6 +39,8 @@ from app.repository import Repository
 from app.rules import RuleResult, evaluate_rule, evaluate_rule_diagnostics
 from app.scheduler import calculate_cooldown, calculate_next_check
 from app.screenshots import save_screenshot
+from app.webhook import WebhookClient
+from app.webpush import WebPushManager
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser, Playwright
@@ -128,6 +131,8 @@ class StockChecker:
             max_attempts=settings.ntfy_max_attempts,
             backoff_seconds=settings.ntfy_retry_backoff_seconds,
         )
+        self.webpush = WebPushManager(repo, settings)
+        self.webhook = WebhookClient()
         self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._browser_lock = asyncio.Lock()
@@ -273,7 +278,7 @@ class StockChecker:
             await evaluate_notification_rules(
                 self.repo,
                 self.repo.get_settings(),
-                self.ntfy.send,
+                self.notify,
             )
 
     async def fetch(self, monitor: Monitor) -> FetchResult:
@@ -508,7 +513,7 @@ class StockChecker:
                 monitor.id, EVENT_CHALLENGE, message, old_status, new_status, evidence
             )
             if notify_enabled and monitor.notify_on_challenge:
-                await self._notify(
+                await self.notify(
                     app_settings, monitor, "Stock watcher challenge", message, tags="warning"
                 )
             return
@@ -518,7 +523,7 @@ class StockChecker:
             )
             self.repo.add_event(monitor.id, EVENT_ERROR, message, old_status, new_status, evidence)
             if notify_enabled and monitor.notify_on_error:
-                await self._notify(
+                await self.notify(
                     app_settings, monitor, "Stock watcher errors", message, tags="warning"
                 )
             return
@@ -541,30 +546,66 @@ class StockChecker:
                 message = f"{monitor.name}: {old_descriptor} -> {new_descriptor}."
             self.repo.add_event(monitor.id, event_type, message, old_status, new_status, evidence)
             if notify_enabled and monitor.notify_on_stock_change:
-                await self._notify(app_settings, monitor, title, message, tags="shopping_cart")
+                await self.notify(app_settings, monitor, title, message, tags="shopping_cart")
 
-    async def _notify(
+    async def notify(
         self,
-        app_settings,
-        monitor: Monitor,
+        app_settings: AppSettings,
+        monitor: Monitor | None,
         title: str,
         message: str,
-        tags: str,
+        tags: str = "package",
     ) -> bool:
+        """Fan a notification out to every enabled channel.
+
+        Returns True if at least one channel delivered. Each channel is isolated:
+        a failure (raised or rejected) is recorded as an event and never blocks
+        the others or the surrounding check.
+        """
+        monitor_id = monitor.id if monitor else None
+        delivered = False
+
         try:
             sent = await self.ntfy.send(app_settings, monitor, title, message, tags=tags)
         except Exception as exc:  # noqa: BLE001 - notification failure should not stop checks
             self.repo.add_event(
-                monitor.id, EVENT_NOTIFICATION_ERROR, f"ntfy notification failed: {exc}"
+                monitor_id, EVENT_NOTIFICATION_ERROR, f"ntfy notification failed: {exc}"
             )
-            return False
-        if not sent and app_settings.ntfy_enabled and app_settings.ntfy_topic:
+        else:
+            if sent:
+                delivered = True
+            elif app_settings.ntfy_enabled and app_settings.ntfy_topic:
+                self.repo.add_event(
+                    monitor_id,
+                    EVENT_NOTIFICATION_ERROR,
+                    "ntfy notification failed: delivery was rejected or unavailable",
+                )
+
+        try:
+            if await self.webpush.send(app_settings, monitor, title, message, tags=tags):
+                delivered = True
+        except Exception as exc:  # noqa: BLE001 - isolate channel failures
             self.repo.add_event(
-                monitor.id,
-                EVENT_NOTIFICATION_ERROR,
-                "ntfy notification failed: delivery was rejected or unavailable",
+                monitor_id, EVENT_NOTIFICATION_ERROR, f"Web Push notification failed: {exc}"
             )
-        return sent
+
+        try:
+            sent = await self.webhook.send(app_settings, monitor, title, message, tags=tags)
+        except Exception as exc:  # noqa: BLE001 - isolate channel failures
+            self.repo.add_event(
+                monitor_id, EVENT_NOTIFICATION_ERROR, f"Webhook notification failed: {exc}"
+            )
+        else:
+            if sent:
+                delivered = True
+            elif app_settings.webhook_enabled and app_settings.webhook_url.strip():
+                self.repo.add_event(
+                    monitor_id,
+                    EVENT_NOTIFICATION_ERROR,
+                    "Webhook notification failed: delivery was rejected or unavailable",
+                )
+
+        return delivered
 
 
 def _compact_evidence(value: str, limit: int = 300) -> str:

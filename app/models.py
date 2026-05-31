@@ -121,6 +121,12 @@ class CheckAttempt:
     quantity: int | None = None
 
 
+WEBHOOK_FORMAT_CUSTOM = "custom"
+WEBHOOK_FORMAT_DISCORD = "discord"
+WEBHOOK_FORMAT_SLACK = "slack"
+WEBHOOK_FORMATS = (WEBHOOK_FORMAT_CUSTOM, WEBHOOK_FORMAT_DISCORD, WEBHOOK_FORMAT_SLACK)
+
+
 @dataclass
 class AppSettings:
     ntfy_enabled: bool
@@ -128,9 +134,33 @@ class AppSettings:
     ntfy_topic: str
     ntfy_token: str
     ntfy_priority: str
+    # Web Push is the default channel: it works without any extra account, the
+    # VAPID keys are generated and stored server-side, and devices opt in per
+    # browser. Disabled channels short-circuit before any network call.
+    webpush_enabled: bool = True
+    webhook_enabled: bool = False
+    webhook_url: str = ""
+    webhook_format: str = WEBHOOK_FORMAT_CUSTOM
+    webhook_headers: str = ""
     llm_base_url: str = "https://api.openai.com/v1"
     llm_model: str = ""
     llm_extra_params: str = ""
+
+
+@dataclass
+class PushSubscription:
+    """A browser Web Push subscription (one per device/browser that opted in).
+
+    `endpoint` is the push-service URL the browser handed us; `p256dh`/`auth`
+    are the client keys used to encrypt the payload (RFC 8291).
+    """
+
+    id: int | None
+    endpoint: str
+    p256dh: str
+    auth: str
+    user_agent: str = ""
+    created_at: datetime | None = None
 
 
 @dataclass

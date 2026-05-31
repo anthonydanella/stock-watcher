@@ -131,17 +131,33 @@ def notification_rule_to_dict(rule: NotificationRule, monitors: list[Monitor]) -
     }
 
 
-def settings_to_dict(app_settings: AppSettings, *, llm_configured: bool) -> dict[str, Any]:
+def settings_to_dict(
+    app_settings: AppSettings,
+    *,
+    llm_configured: bool,
+    webpush_public_key: str = "",
+    webpush_subscriptions: int = 0,
+) -> dict[str, Any]:
     return {
         "ntfy_enabled": app_settings.ntfy_enabled,
         "ntfy_server": app_settings.ntfy_server,
         "ntfy_topic": app_settings.ntfy_topic,
         "ntfy_token": app_settings.ntfy_token,
         "ntfy_priority": app_settings.ntfy_priority,
+        "webpush_enabled": app_settings.webpush_enabled,
+        "webhook_enabled": app_settings.webhook_enabled,
+        "webhook_url": app_settings.webhook_url,
+        "webhook_format": app_settings.webhook_format,
+        "webhook_headers": app_settings.webhook_headers,
         "llm_base_url": app_settings.llm_base_url,
         "llm_model": app_settings.llm_model,
         "llm_extra_params": app_settings.llm_extra_params,
         "llm_configured": llm_configured,
+        # Read-only Web Push status for the UI: the public key the browser needs
+        # to subscribe, and how many devices are currently subscribed.
+        "webpush_public_key": webpush_public_key,
+        "webpush_configured": bool(webpush_public_key),
+        "webpush_subscriptions": webpush_subscriptions,
     }
 
 
