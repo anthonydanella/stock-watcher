@@ -37,19 +37,22 @@ export function BulkActionBar({
   return (
     <>
       <ActionBar ariaLabel="Bulk actions">
-        <span className="text-sm font-medium tabular-nums">{label} selected</span>
+        <span className="text-sm font-medium tabular-nums">
+          {count}
+          <span className="hidden sm:inline"> {count === 1 ? "monitor" : "monitors"}</span> selected
+        </span>
         <ActionBarSeparator />
         <Button variant="ghost" size="sm" disabled={anyBusy} onClick={onEnable}>
           {busy === "enable" ? <LoaderCircle className="animate-spin" /> : <Power />}
-          Enable
+          <span className="hidden sm:inline">Enable</span>
         </Button>
         <Button variant="ghost" size="sm" disabled={anyBusy} onClick={onPause}>
           {busy === "pause" ? <LoaderCircle className="animate-spin" /> : <Pause />}
-          Pause
+          <span className="hidden sm:inline">Pause</span>
         </Button>
         <Button variant="ghost" size="sm" disabled={anyBusy} onClick={onRun}>
           {busy === "run" ? <LoaderCircle className="animate-spin" /> : <Play />}
-          Run now
+          <span className="hidden sm:inline">Run now</span>
         </Button>
         <Button
           variant="ghost"
@@ -59,9 +62,9 @@ export function BulkActionBar({
           onClick={() => setConfirmOpen(true)}
         >
           {busy === "delete" ? <LoaderCircle className="animate-spin" /> : <Trash2 />}
-          Delete
+          <span className="hidden sm:inline">Delete</span>
         </Button>
-        <ActionBarSeparator />
+        <ActionBarSeparator className="hidden sm:block" />
         <Button
           variant="ghost"
           size="icon-sm"

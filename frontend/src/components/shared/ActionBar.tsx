@@ -33,6 +33,6 @@ export function ActionBar({
 }
 
 /** Thin vertical rule for separating groups of controls inside an ActionBar. */
-export function ActionBarSeparator() {
-  return <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />;
+export function ActionBarSeparator({ className }: { className?: string }) {
+  return <span className={cn("mx-1 h-5 w-px bg-border", className)} aria-hidden="true" />;
 }

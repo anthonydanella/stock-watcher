@@ -64,8 +64,10 @@ export function MonitorListCard({
   const cooling = isCoolingDown(monitor);
   const trend = monitor.recent_quantities ?? [];
   const hasTrend = trend.length > 1;
+  const hasScreenshot = Boolean(monitor.last_screenshot_url && monitor.last_screenshot_at);
   return (
     <Card
+      size="sm"
       className={cn(
         "min-w-0 overflow-hidden rounded-lg border border-border border-t-[3px] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
         !monitor.enabled && "opacity-75 hover:opacity-100",
@@ -73,34 +75,27 @@ export function MonitorListCard({
         theme.accent
       )}
     >
-      <CardHeader>
-        <div className="flex min-w-0 items-start justify-between gap-3">
+      <CardHeader className="gap-0.5">
+        <div className="flex min-w-0 items-start justify-between gap-2">
           {onSelectedChange ? (
             <Checkbox
               checked={selected}
               onCheckedChange={(checked) => onSelectedChange(checked === true)}
               aria-label={`Select ${monitor.name}`}
-              className="mt-1 shrink-0"
+              className="mt-0.5 shrink-0"
             />
           ) : null}
           <Link to={`/monitors/${monitor.id}`} className="block min-w-0 flex-1">
-            <div className="truncate font-heading text-base font-medium leading-normal hover:underline">
+            <div className="truncate font-heading text-sm font-medium leading-tight hover:underline">
               {monitor.name}
             </div>
             <p className="truncate text-xs text-muted-foreground">{monitor.url}</p>
           </Link>
-          <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <StatusBadge status={monitor.status} live={monitor.enabled} className="shrink-0" />
-            {cooling ? (
-              <span className="text-xs leading-tight text-violet-700 dark:text-violet-300">
-                Cooling {timeAgo(monitor.cooldown_until)}
-              </span>
-            ) : null}
-          </div>
+          <StatusBadge status={monitor.status} live={monitor.enabled} className="shrink-0" />
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5">
         <TagChips tags={monitor.tags} />
         {isQuantity ? (
           <StockEditPopover monitor={monitor} onSaved={onPatch}>
@@ -123,31 +118,27 @@ export function MonitorListCard({
           </StockEditPopover>
         ) : null}
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium text-muted-foreground">Notifications</span>
-          <NotificationsCell monitor={monitor} onSaved={onPatch} />
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium text-muted-foreground">Last check</span>
-          <span className="text-right text-sm leading-tight">
-            {monitor.last_checked_at ? timeAgo(monitor.last_checked_at) || "Just now" : "Never"}
-          </span>
-        </div>
-
-        <ScheduleEditPopover monitor={monitor} onSaved={onPatch}>
-          <span className="flex w-full items-center justify-between gap-3">
-            <span className="text-xs font-medium text-muted-foreground">Next check</span>
-            <span className="flex min-w-0 flex-col items-end text-right text-sm">
-              <NextCheckSummary monitor={monitor} cooling={cooling} />
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+          <div className="min-w-0">
+            <span className="block text-xs font-medium text-muted-foreground">Last check</span>
+            <span className="block text-sm leading-tight">
+              {monitor.last_checked_at ? timeAgo(monitor.last_checked_at) || "Just now" : "Never"}
             </span>
-          </span>
-        </ScheduleEditPopover>
+          </div>
+          <ScheduleEditPopover monitor={monitor} onSaved={onPatch}>
+            <span className="flex min-w-0 flex-col items-start text-left">
+              <span className="text-xs font-medium text-muted-foreground">Next check</span>
+              <span className="text-sm leading-tight">
+                <NextCheckSummary monitor={monitor} cooling={cooling} />
+              </span>
+            </span>
+          </ScheduleEditPopover>
+        </div>
 
-        <MonitorScreenshot monitor={monitor} />
+        {hasScreenshot ? <MonitorScreenshot monitor={monitor} /> : null}
         {monitor.last_error ? (
           <Alert className={cn(warningAlertClass, "block")}>
-            <p className="line-clamp-3 min-w-0 break-words [overflow-wrap:anywhere]">
+            <p className="line-clamp-2 min-w-0 break-words [overflow-wrap:anywhere]">
               {monitor.last_error_type ? (
                 <span className="font-medium">{failureTypeLabel(monitor.last_error_type)}: </span>
               ) : null}
@@ -155,13 +146,17 @@ export function MonitorListCard({
             </p>
           </Alert>
         ) : null}
-        <MonitorActions
-          monitor={monitor}
-          busyActions={busyActions}
-          onAction={onAction}
-          onDuplicate={onDuplicate}
-          stretch
-        />
+
+        <div className="flex items-center justify-between gap-2 border-t pt-2.5">
+          <NotificationsCell monitor={monitor} onSaved={onPatch} />
+          <MonitorActions
+            monitor={monitor}
+            busyActions={busyActions}
+            onAction={onAction}
+            onDuplicate={onDuplicate}
+            compact
+          />
+        </div>
       </CardContent>
     </Card>
   );
