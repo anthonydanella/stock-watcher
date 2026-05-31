@@ -147,274 +147,277 @@ export function SettingsPage() {
         </PanelCard>
       ) : (
         <form className="space-y-6" onSubmit={save}>
-          <PanelCard className="overflow-visible">
-            <CardContent>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="flex items-center gap-2 md:col-span-2">
-                  <BellRing className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Web push
-                  </h2>
-                  <Badge variant="secondary">Default</Badge>
-                  <InfoTooltip side="right">
-                    Push notifications straight to this browser or installed app, even when it's
-                    closed — no extra account or app. On iPhone/iPad you must add Stock Watcher to
-                    the Home Screen first (iOS 16.4+ only allows push for installed apps).
-                  </InfoTooltip>
-                </div>
-                <ToggleField
-                  label="Enable web push"
-                  description="Deliver alerts to every subscribed device."
-                  checked={settings.webpush_enabled}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, webpush_enabled: checked })
-                  }
-                  className="md:col-span-2"
-                />
-                <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3 text-sm">
-                  <div className="grid gap-1">
-                    <span className="font-medium">This device</span>
-                    <span className="text-xs text-muted-foreground">
-                      {deviceStatusText(push.state, settings.webpush_configured)} · {subscribers}{" "}
-                      {subscribers === 1 ? "device" : "devices"} subscribed
-                    </span>
+          <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <PanelCard className="overflow-visible">
+              <CardContent>
+                <div className="grid gap-5">
+                  <div className="flex items-center gap-2">
+                    <BellRing className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Web push
+                    </h2>
+                    <Badge variant="secondary">Default</Badge>
+                    <InfoTooltip side="right">
+                      Push notifications straight to this browser or installed app, even when it's
+                      closed — no extra account or app. On iPhone/iPad you must add Stock Watcher to
+                      the Home Screen first (iOS 16.4+ only allows push for installed apps).
+                    </InfoTooltip>
                   </div>
-                  {push.state === "subscribed" ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={push.busy}
-                      onClick={disableDevice}
-                    >
-                      {push.busy ? "Working" : "Disable on this device"}
-                    </Button>
-                  ) : (
+                  <ToggleField
+                    label="Enable web push"
+                    description="Deliver alerts to every subscribed device."
+                    checked={settings.webpush_enabled}
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, webpush_enabled: checked })
+                    }
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-background p-3 text-sm">
+                    <div className="grid gap-1">
+                      <span className="font-medium">This device</span>
+                      <span className="text-xs text-muted-foreground">
+                        {deviceStatusText(push.state, settings.webpush_configured)} · {subscribers}{" "}
+                        {subscribers === 1 ? "device" : "devices"} subscribed
+                      </span>
+                    </div>
+                    {push.state === "subscribed" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={push.busy}
+                        onClick={disableDevice}
+                      >
+                        {push.busy ? "Working" : "Disable on this device"}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={
+                          push.busy ||
+                          push.state === "unsupported" ||
+                          push.state === "denied" ||
+                          !settings.webpush_configured
+                        }
+                        onClick={enableDevice}
+                      >
+                        <BellRing className="h-4 w-4" />
+                        {push.busy ? "Enabling" : "Enable on this device"}
+                      </Button>
+                    )}
+                  </div>
+                  {showInstallHint ? (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      On iPhone/iPad, add Stock Watcher to your Home Screen (Share → Add to Home
+                      Screen), open it from there, then enable web push.
+                    </p>
+                  ) : null}
+                  <div className="flex justify-end">
                     <Button
                       type="button"
                       variant="secondary"
                       disabled={
-                        push.busy ||
-                        push.state === "unsupported" ||
-                        push.state === "denied" ||
-                        !settings.webpush_configured
+                        Boolean(busyAction) || !settings.webpush_enabled || subscribers === 0
                       }
-                      onClick={enableDevice}
+                      onClick={() => runTest("test-push", api.testPush)}
                     >
-                      <BellRing className="h-4 w-4" />
-                      {push.busy ? "Enabling" : "Enable on this device"}
+                      <Bell className="h-4 w-4" />
+                      {busyAction === "test-push" ? "Sending" : "Send test"}
                     </Button>
-                  )}
+                  </div>
                 </div>
-                {showInstallHint ? (
-                  <p className="md:col-span-2 text-xs text-amber-700 dark:text-amber-300">
-                    On iPhone/iPad, add Stock Watcher to your Home Screen (Share → Add to Home
-                    Screen), open it from there, then enable web push.
-                  </p>
-                ) : null}
-                <div className="md:col-span-2 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={Boolean(busyAction) || !settings.webpush_enabled || subscribers === 0}
-                    onClick={() => runTest("test-push", api.testPush)}
-                  >
-                    <Bell className="h-4 w-4" />
-                    {busyAction === "test-push" ? "Sending" : "Send test"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </PanelCard>
+              </CardContent>
+            </PanelCard>
 
-          <PanelCard className="overflow-visible">
-            <CardContent>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="flex items-center gap-2 md:col-span-2">
-                  <Webhook className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Webhook
-                  </h2>
-                  <InfoTooltip side="right">
-                    POSTs a JSON payload to any URL on each alert. Pick a preset to match the
-                    target: Discord and Slack incoming webhooks, or generic JSON for Home Assistant,
-                    Zapier, n8n, and the like.
-                  </InfoTooltip>
-                </div>
-                <ToggleField
-                  label="Enable webhook"
-                  description="POST alerts to an external URL."
-                  checked={settings.webhook_enabled}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, webhook_enabled: checked })
-                  }
-                  className="md:col-span-2"
-                />
-                <FormField label="Webhook URL" className="md:col-span-2">
-                  <Input
-                    type="url"
-                    value={settings.webhook_url}
-                    onChange={(event) =>
-                      setSettings({ ...settings, webhook_url: event.target.value })
+            <PanelCard className="overflow-visible">
+              <CardContent>
+                <div className="grid gap-5">
+                  <div className="flex items-center gap-2">
+                    <Webhook className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Webhook
+                    </h2>
+                    <InfoTooltip side="right">
+                      POSTs a JSON payload to any URL on each alert. Pick a preset to match the
+                      target: Discord and Slack incoming webhooks, or generic JSON for Home
+                      Assistant, Zapier, n8n, and the like.
+                    </InfoTooltip>
+                  </div>
+                  <ToggleField
+                    label="Enable webhook"
+                    description="POST alerts to an external URL."
+                    checked={settings.webhook_enabled}
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, webhook_enabled: checked })
                     }
-                    placeholder="https://discord.com/api/webhooks/…"
                   />
-                </FormField>
-                <FormField
-                  label="Format"
-                  tooltip="Shapes the request body. Generic JSON sends { title, message, status, monitor, url, tags }."
-                >
-                  <Select
-                    value={settings.webhook_format}
-                    onValueChange={(value) =>
-                      setSettings({
-                        ...settings,
-                        webhook_format: (value as AppSettings["webhook_format"]) ?? "custom"
-                      })
-                    }
+                  <FormField label="Webhook URL">
+                    <Input
+                      type="url"
+                      value={settings.webhook_url}
+                      onChange={(event) =>
+                        setSettings({ ...settings, webhook_url: event.target.value })
+                      }
+                      placeholder="https://discord.com/api/webhooks/…"
+                    />
+                  </FormField>
+                  <FormField
+                    label="Format"
+                    tooltip="Shapes the request body. Generic JSON sends { title, message, status, monitor, url, tags }."
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Generic JSON" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="custom">
-                          Generic JSON (Home Assistant, Zapier…)
-                        </SelectItem>
-                        <SelectItem value="discord">Discord</SelectItem>
-                        <SelectItem value="slack">Slack</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </FormField>
-                <FormField
-                  label="Extra headers (JSON)"
-                  description='Optional. Merged into the request, e.g. { "Authorization": "Bearer …" }.'
-                  tooltip="JSON object of extra HTTP headers, useful for authenticated webhooks. Leave blank for none."
-                  className="md:col-span-2"
-                >
-                  <Textarea
-                    className="font-mono"
-                    rows={2}
-                    value={settings.webhook_headers}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setSettings({ ...settings, webhook_headers: value });
-                      setWebhookHeadersError(jsonObjectError(value));
-                    }}
-                    placeholder='{ "Authorization": "Bearer secret" }'
-                  />
-                </FormField>
-                {webhookHeadersError ? (
-                  <p className="md:col-span-2 text-xs text-amber-700 dark:text-amber-300">
-                    {webhookHeadersError}
-                  </p>
-                ) : null}
-                <div className="md:col-span-2 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={Boolean(busyAction)}
-                    onClick={() => runTest("test-webhook", api.testWebhook)}
+                    <Select
+                      value={settings.webhook_format}
+                      onValueChange={(value) =>
+                        setSettings({
+                          ...settings,
+                          webhook_format: (value as AppSettings["webhook_format"]) ?? "custom"
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Generic JSON" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="custom">
+                            Generic JSON (Home Assistant, Zapier…)
+                          </SelectItem>
+                          <SelectItem value="discord">Discord</SelectItem>
+                          <SelectItem value="slack">Slack</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                  <FormField
+                    label="Extra headers (JSON)"
+                    description='Optional. Merged into the request, e.g. { "Authorization": "Bearer …" }.'
+                    tooltip="JSON object of extra HTTP headers, useful for authenticated webhooks. Leave blank for none."
                   >
-                    <Webhook className="h-4 w-4" />
-                    {busyAction === "test-webhook" ? "Sending" : "Send test"}
-                  </Button>
+                    <Textarea
+                      className="font-mono"
+                      rows={2}
+                      value={settings.webhook_headers}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setSettings({ ...settings, webhook_headers: value });
+                        setWebhookHeadersError(jsonObjectError(value));
+                      }}
+                      placeholder='{ "Authorization": "Bearer secret" }'
+                    />
+                  </FormField>
+                  {webhookHeadersError ? (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      {webhookHeadersError}
+                    </p>
+                  ) : null}
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={Boolean(busyAction)}
+                      onClick={() => runTest("test-webhook", api.testWebhook)}
+                    >
+                      <Webhook className="h-4 w-4" />
+                      {busyAction === "test-webhook" ? "Sending" : "Send test"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </PanelCard>
+              </CardContent>
+            </PanelCard>
 
-          <PanelCard className="overflow-visible">
-            <CardContent>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="flex items-center gap-2 md:col-span-2">
-                  <Bell className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    ntfy
-                  </h2>
-                  <InfoTooltip side="right">
-                    ntfy is an open-source push service. Set a topic, subscribe on your phone or
-                    browser via the ntfy app, and Stock Watcher pushes alerts when status changes or
-                    errors repeat.
-                  </InfoTooltip>
-                </div>
-                <ToggleField
-                  label="Enable ntfy notifications"
-                  description="Send alerts on stock changes, repeated errors, and challenges."
-                  checked={settings.ntfy_enabled}
-                  onCheckedChange={(checked) => setSettings({ ...settings, ntfy_enabled: checked })}
-                  className="md:col-span-2"
-                />
-                <FormField label="ntfy server">
-                  <Input
-                    type="url"
-                    value={settings.ntfy_server}
-                    onChange={(event) =>
-                      setSettings({ ...settings, ntfy_server: event.target.value })
+            <PanelCard className="overflow-visible md:col-span-2 lg:col-span-1">
+              <CardContent className="@container">
+                <div className="grid gap-5 @sm:grid-cols-2">
+                  <div className="flex items-center gap-2 @sm:col-span-2">
+                    <Bell className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      ntfy
+                    </h2>
+                    <InfoTooltip side="right">
+                      ntfy is an open-source push service. Set a topic, subscribe on your phone or
+                      browser via the ntfy app, and Stock Watcher pushes alerts when status changes
+                      or errors repeat.
+                    </InfoTooltip>
+                  </div>
+                  <ToggleField
+                    label="Enable ntfy notifications"
+                    description="Send alerts on stock changes, repeated errors, and challenges."
+                    checked={settings.ntfy_enabled}
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, ntfy_enabled: checked })
                     }
-                    placeholder="https://ntfy.sh"
+                    className="@sm:col-span-2"
                   />
-                </FormField>
-                <FormField label="ntfy topic">
-                  <Input
-                    value={settings.ntfy_topic}
-                    onChange={(event) =>
-                      setSettings({ ...settings, ntfy_topic: event.target.value })
-                    }
-                    placeholder="my-stock-alerts"
-                  />
-                </FormField>
-                <FormField
-                  label="ntfy token"
-                  tooltip="Required only for private ntfy topics that need authentication. Leave blank for public topics."
-                >
-                  <Input
-                    type="password"
-                    value={settings.ntfy_token}
-                    onChange={(event) =>
-                      setSettings({ ...settings, ntfy_token: event.target.value })
-                    }
-                    placeholder="Optional access token"
-                  />
-                </FormField>
-                <FormField label="Priority">
-                  <Select
-                    value={settings.ntfy_priority ?? "default"}
-                    onValueChange={(value) =>
-                      setSettings({
-                        ...settings,
-                        ntfy_priority: value ?? "default"
-                      })
-                    }
+                  <FormField label="ntfy server">
+                    <Input
+                      type="url"
+                      value={settings.ntfy_server}
+                      onChange={(event) =>
+                        setSettings({ ...settings, ntfy_server: event.target.value })
+                      }
+                      placeholder="https://ntfy.sh"
+                    />
+                  </FormField>
+                  <FormField label="ntfy topic">
+                    <Input
+                      value={settings.ntfy_topic}
+                      onChange={(event) =>
+                        setSettings({ ...settings, ntfy_topic: event.target.value })
+                      }
+                      placeholder="my-stock-alerts"
+                    />
+                  </FormField>
+                  <FormField
+                    label="ntfy token"
+                    tooltip="Required only for private ntfy topics that need authentication. Leave blank for public topics."
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="default" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="min">Min</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="default">Default</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </FormField>
-                <div className="md:col-span-2 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={Boolean(busyAction)}
-                    onClick={() => runTest("test-ntfy", api.testNotification)}
-                  >
-                    <Bell className="h-4 w-4" />
-                    {busyAction === "test-ntfy" ? "Sending" : "Send test"}
-                  </Button>
+                    <Input
+                      type="password"
+                      value={settings.ntfy_token}
+                      onChange={(event) =>
+                        setSettings({ ...settings, ntfy_token: event.target.value })
+                      }
+                      placeholder="Optional access token"
+                    />
+                  </FormField>
+                  <FormField label="Priority">
+                    <Select
+                      value={settings.ntfy_priority ?? "default"}
+                      onValueChange={(value) =>
+                        setSettings({
+                          ...settings,
+                          ntfy_priority: value ?? "default"
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="default" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="min">Min</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                  <div className="@sm:col-span-2 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={Boolean(busyAction)}
+                      onClick={() => runTest("test-ntfy", api.testNotification)}
+                    >
+                      <Bell className="h-4 w-4" />
+                      {busyAction === "test-ntfy" ? "Sending" : "Send test"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </PanelCard>
+              </CardContent>
+            </PanelCard>
+          </div>
 
           <PanelCard className="overflow-visible">
             <CardContent>
