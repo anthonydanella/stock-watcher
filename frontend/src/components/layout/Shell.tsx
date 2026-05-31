@@ -17,6 +17,12 @@ export function Shell() {
   // position: sticky for the nav and page headers.
   return (
     <div className="min-h-screen overflow-x-clip">
+      {/* Soft ambient wash behind everything — a faint brand-tinted glow up top
+          that fades into the page, giving the flat background subtle depth. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[32rem] bg-gradient-to-b from-primary/[0.08] via-primary/[0.025] to-transparent"
+      />
       <header className="sticky top-0 z-20 border-b border-border/60 bg-card/70 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/60">
         <div className="mx-auto flex min-h-14 w-full max-w-450 flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-2 lg:flex-nowrap lg:gap-6 lg:py-0">
           <div className="flex min-w-0 items-center gap-2">
