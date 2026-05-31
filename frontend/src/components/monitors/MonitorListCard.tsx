@@ -23,34 +23,24 @@ import { NotificationsCell } from "./NotificationsCell";
 import { ScheduleEditPopover } from "./ScheduleEditPopover";
 import { StockEditPopover } from "./StockEditPopover";
 
+// `accent` colors the card's 3px top border for an at-a-glance status hue;
+// using the border itself keeps it flush with the corners and unmasked.
 function getStatusTheme(status: string | null | undefined, enabled: boolean) {
   if (!enabled) {
-    return {
-      borderHover: "hover:border-zinc-300/40 dark:hover:border-zinc-700/40"
-    };
+    return { accent: "border-t-zinc-300 dark:border-t-zinc-600" };
   }
 
   switch (status) {
     case "in_stock":
-      return {
-        borderHover: "hover:border-emerald-500/30 dark:hover:border-emerald-500/20"
-      };
+      return { accent: "border-t-emerald-500/80" };
     case "out_of_stock":
-      return {
-        borderHover: "hover:border-slate-400/30 dark:hover:border-slate-500/20"
-      };
+      return { accent: "border-t-slate-400/70 dark:border-t-slate-500/60" };
     case "error":
-      return {
-        borderHover: "hover:border-amber-500/30 dark:hover:border-amber-500/20"
-      };
+      return { accent: "border-t-amber-500/80" };
     case "challenge":
-      return {
-        borderHover: "hover:border-violet-500/30 dark:hover:border-violet-500/20"
-      };
+      return { accent: "border-t-violet-500/80" };
     default:
-      return {
-        borderHover: "hover:border-zinc-400/30 dark:hover:border-zinc-500/20"
-      };
+      return { accent: "border-t-zinc-400/70" };
   }
 }
 
@@ -83,10 +73,10 @@ export function MonitorListCard({
   return (
     <Card
       className={cn(
-        "min-w-0 overflow-hidden rounded-lg border border-border shadow-sm transition-shadow duration-200 hover:shadow-md",
+        "min-w-0 overflow-hidden rounded-lg border border-border border-t-[3px] shadow-sm transition-shadow duration-200 hover:shadow-md",
         !monitor.enabled && "opacity-75 hover:opacity-100",
         selected && "border-primary/50 bg-primary/5",
-        theme.borderHover
+        theme.accent
       )}
     >
       <CardHeader>

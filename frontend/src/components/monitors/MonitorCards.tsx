@@ -36,34 +36,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { MonitorQuantitySparkline } from "./MonitorQuantitySparkline";
 import { MonitorScreenshot } from "./MonitorScreenshot";
 
+// `accent` colors the card's 3px top border, giving each card an at-a-glance
+// status hue. Using the border itself (rather than an overlay) keeps it flush
+// with the rounded corners and never gets masked by overflow clipping.
 function getStatusTheme(status: string | null | undefined, enabled: boolean) {
   if (!enabled) {
-    return {
-      borderHover: "hover:border-zinc-300/40 dark:hover:border-zinc-700/40"
-    };
+    return { accent: "border-t-zinc-300 dark:border-t-zinc-600" };
   }
 
   switch (status) {
     case "in_stock":
-      return {
-        borderHover: "hover:border-emerald-500/30 dark:hover:border-emerald-500/20"
-      };
+      return { accent: "border-t-emerald-500/80" };
     case "out_of_stock":
-      return {
-        borderHover: "hover:border-slate-400/30 dark:hover:border-slate-500/20"
-      };
+      return { accent: "border-t-slate-400/70 dark:border-t-slate-500/60" };
     case "error":
-      return {
-        borderHover: "hover:border-amber-500/30 dark:hover:border-amber-500/20"
-      };
+      return { accent: "border-t-amber-500/80" };
     case "challenge":
-      return {
-        borderHover: "hover:border-violet-500/30 dark:hover:border-violet-500/20"
-      };
+      return { accent: "border-t-violet-500/80" };
     default:
-      return {
-        borderHover: "hover:border-zinc-400/30 dark:hover:border-zinc-500/20"
-      };
+      return { accent: "border-t-zinc-400/70" };
   }
 }
 
@@ -104,12 +95,12 @@ export function MonitorCards({
             // Subtle staggered entrance, capped so longer lists don't crawl in.
             style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
             className={cn(
-              "min-w-0 overflow-hidden rounded-lg border border-border shadow-sm transition duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md",
+              "min-w-0 overflow-hidden rounded-lg border border-border border-t-[3px] shadow-sm transition duration-200 ease-in-out hover:-translate-y-1 hover:shadow-lg",
               // fill-mode-backwards holds the pre-animation state during the staggered
               // delay (no flash) without pinning transform, so hover:-translate-y keeps working.
               "fade-in slide-in-from-bottom-2 fill-mode-backwards animate-in duration-500",
               !monitor.enabled && "opacity-75 hover:opacity-100",
-              theme.borderHover
+              theme.accent
             )}
           >
             <CardHeader>
