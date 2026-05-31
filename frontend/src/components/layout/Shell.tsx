@@ -27,7 +27,7 @@ export function Shell() {
           lending the empty background a faint engineered texture. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 text-primary/[0.10] [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent)]"
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 text-primary/[0.20] [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent)]"
       />
       <header className="sticky top-0 z-20 border-b border-border/60 bg-card/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/60">
         <div className="mx-auto flex min-h-14 w-full max-w-450 flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-2 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:flex-nowrap lg:gap-6 lg:py-0">
