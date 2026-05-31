@@ -67,7 +67,7 @@ export function MonitorListCard({
   return (
     <Card
       className={cn(
-        "min-w-0 overflow-hidden rounded-lg border border-border border-t-[3px] shadow-sm transition-shadow duration-200 hover:shadow-md",
+        "min-w-0 overflow-hidden rounded-lg border border-border border-t-[3px] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
         !monitor.enabled && "opacity-75 hover:opacity-100",
         selected && "border-primary/50 bg-primary/5",
         theme.accent

@@ -16,11 +16,14 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-2.5 rounded-lg border border-dashed bg-card/40 px-4 py-9 text-center",
+        "flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed bg-card/40 px-4 py-9 text-center",
         className
       )}
     >
-      <span aria-hidden className="text-muted-foreground/40">
+      <span
+        aria-hidden
+        className="grid size-12 place-items-center rounded-full bg-gradient-to-b from-muted/70 to-muted/20 text-muted-foreground/60 shadow-inner ring-1 ring-inset ring-border/70"
+      >
         {icon ?? <Inbox className="h-6 w-6" />}
       </span>
       <p className="max-w-sm text-sm text-muted-foreground">{message}</p>

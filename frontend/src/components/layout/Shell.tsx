@@ -23,14 +23,20 @@ export function Shell() {
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[32rem] bg-gradient-to-b from-primary/[0.08] via-primary/[0.025] to-transparent"
       />
+      {/* A barely-there dot grid layered over the wash and masked to fade out,
+          lending the empty background a faint engineered texture. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 text-primary/[0.10] [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      />
       <header className="sticky top-0 z-20 border-b border-border/60 bg-card/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/60">
         <div className="mx-auto flex min-h-14 w-full max-w-450 flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-2 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:flex-nowrap lg:gap-6 lg:py-0">
           <div className="flex min-w-0 items-center gap-2">
             <Link
               to="/"
-              className="flex min-w-0 items-center gap-2 rounded-md text-base font-semibold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="group flex min-w-0 items-center gap-2 rounded-md text-base font-semibold tracking-tight text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary/10 text-primary ring-1 ring-inset ring-primary/15">
+              <span className="grid size-7 shrink-0 place-items-center rounded-md bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-sm ring-1 ring-inset ring-primary/20 transition-transform duration-200 group-hover:scale-105">
                 <Radar className="size-4" aria-hidden="true" />
               </span>
               <span className="truncate">Stock Watcher</span>
