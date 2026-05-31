@@ -1,19 +1,13 @@
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import {
-  failureTypeLabel,
-  formatDate,
-  statusBadgeClass,
-  statusLabel,
-  timeAgo
-} from "../../../lib/format";
+import { failureTypeLabel, formatDate, timeAgo } from "../../../lib/format";
 import { isCoolingDown } from "../../../lib/monitor";
 import { cn } from "../../../lib/utils";
 import type { Monitor } from "../../../types";
 import { PanelCard } from "../../shared/PanelCard";
+import { StatusBadge } from "../../shared/StatusBadge";
 import { TagChips } from "../../shared/TagChips";
-import { Badge } from "../../ui/badge";
 import { CardContent } from "../../ui/card";
 import { Checkbox } from "../../ui/checkbox";
 import { Table, TableCell, TableHead } from "../../ui/table";
@@ -297,9 +291,7 @@ function MonitorRow({
       </TableCell>
       <TableCell className="w-32 py-2">
         <div className="flex flex-col gap-0.5">
-          <Badge className={cn(statusBadgeClass(monitor.status), "w-fit")}>
-            {statusLabel(monitor.status)}
-          </Badge>
+          <StatusBadge status={monitor.status} live={monitor.enabled} className="w-fit" />
           {cooling ? (
             <span className="text-[11px] leading-tight text-violet-700 dark:text-violet-300">
               Cooling {timeAgo(monitor.cooldown_until)}

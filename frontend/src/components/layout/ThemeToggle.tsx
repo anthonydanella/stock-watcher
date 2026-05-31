@@ -2,6 +2,7 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
 export function ThemeToggle() {
@@ -27,9 +28,23 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
       {mounted && isDark ? (
-        <Sun className="h-4 w-4" aria-hidden="true" />
+        // Key on the icon so the swap spins + fades in — a small reward for toggling.
+        <Sun
+          key="sun"
+          className="h-4 w-4 motion-safe:animate-in motion-safe:fade-in motion-safe:spin-in-90 motion-safe:duration-300"
+          aria-hidden="true"
+        />
       ) : (
-        <Moon className={mounted ? "h-4 w-4" : "h-4 w-4 opacity-0"} aria-hidden="true" />
+        <Moon
+          key="moon"
+          className={cn(
+            "h-4 w-4",
+            mounted
+              ? "motion-safe:animate-in motion-safe:fade-in motion-safe:spin-in-90 motion-safe:duration-300"
+              : "opacity-0"
+          )}
+          aria-hidden="true"
+        />
       )}
     </Button>
   );

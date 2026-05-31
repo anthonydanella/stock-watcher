@@ -1,18 +1,12 @@
 import { Link } from "react-router-dom";
 
-import {
-  failureTypeLabel,
-  statusBadgeClass,
-  statusLabel,
-  timeAgo,
-  warningAlertClass
-} from "../../lib/format";
+import { failureTypeLabel, timeAgo, warningAlertClass } from "../../lib/format";
 import { isCoolingDown } from "../../lib/monitor";
 import { cn } from "../../lib/utils";
 import type { Monitor } from "../../types";
+import { StatusBadge } from "../shared/StatusBadge";
 import { TagChips } from "../shared/TagChips";
 import { Alert } from "../ui/alert";
-import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
 import { type MonitorActionKind, MonitorActions } from "./MonitorActions";
@@ -96,9 +90,7 @@ export function MonitorListCard({
             <p className="truncate text-xs text-muted-foreground">{monitor.url}</p>
           </Link>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <Badge className={cn(statusBadgeClass(monitor.status), "shrink-0")}>
-              {statusLabel(monitor.status)}
-            </Badge>
+            <StatusBadge status={monitor.status} live={monitor.enabled} className="shrink-0" />
             {cooling ? (
               <span className="text-xs leading-tight text-violet-700 dark:text-violet-300">
                 Cooling {timeAgo(monitor.cooldown_until)}

@@ -20,8 +20,6 @@ import {
   formatDate,
   formatScheduleState,
   formatShortDate,
-  statusBadgeClass,
-  statusLabel,
   timeAgo,
   warningAlertClass
 } from "../../lib/format";
@@ -29,8 +27,8 @@ import { cn } from "../../lib/utils";
 import type { Monitor } from "../../types";
 import { EmptyState } from "../shared/EmptyState";
 import { LinkButton } from "../shared/LinkButton";
+import { StatusBadge } from "../shared/StatusBadge";
 import { Alert } from "../ui/alert";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { MonitorQuantitySparkline } from "./MonitorQuantitySparkline";
@@ -151,15 +149,11 @@ export function MonitorCards({
                       </span>
                     </span>
                   ) : null}
-                  <Badge
-                    className={cn(
-                      "shrink-0 shadow-xs border text-xs font-semibold px-2 py-0.5",
-                      statusBadgeClass(monitor.status)
-                    )}
-                    title={statusLabel(monitor.status)}
-                  >
-                    {statusLabel(monitor.status)}
-                  </Badge>
+                  <StatusBadge
+                    status={monitor.status}
+                    live={monitor.enabled}
+                    className="shrink-0 shadow-xs border text-xs font-semibold px-2 py-0.5"
+                  />
                 </div>
               </div>
             </CardHeader>
