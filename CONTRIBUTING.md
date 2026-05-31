@@ -48,6 +48,9 @@ live in the root `package.json`); `frontend/` builds only.
   notifications.
 - Bump the version in `frontend/package.json` for user-visible frontend
   changes.
+- The PWA icons, favicon, and iOS splash screens in `frontend/public/` are
+  generated from the header mark by `frontend/scripts/generate-pwa-assets.mjs`
+  (needs `rsvg-convert`). Re-run it instead of hand-editing those assets.
 
 ## Conventions
 
