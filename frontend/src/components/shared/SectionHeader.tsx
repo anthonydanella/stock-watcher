@@ -11,9 +11,15 @@ export function SectionHeader({
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 id={id} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h2>
+      <div className="flex items-center gap-2">
+        <span aria-hidden className="h-3.5 w-1 rounded-full bg-primary/70" />
+        <h2
+          id={id}
+          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+        >
+          {title}
+        </h2>
+      </div>
       {children}
     </div>
   );
