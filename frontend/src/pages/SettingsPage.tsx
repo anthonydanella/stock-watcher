@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, BellRing, Sparkles, Webhook } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
@@ -22,7 +23,9 @@ import {
 } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
 import { isStandalone, usePushSubscription } from "../hooks/usePushSubscription";
+import { useQueryErrorToast } from "../hooks/useQueryErrorToast";
 import { errorMessage } from "../lib/format";
+import { queryKeys, settingsQuery } from "../lib/queries";
 import { cn } from "../lib/utils";
 import type { AppSettings } from "../types";
 
@@ -55,28 +58,28 @@ function mergeSettings(next: Partial<AppSettings>): AppSettings {
 const IS_IOS = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 export function SettingsPage() {
+  const queryClient = useQueryClient();
+  const settingsQ = useQuery(settingsQuery());
+  useQueryErrorToast(settingsQ.isError, settingsQ.error, "Could not load settings");
+  const loading = settingsQ.isPending;
+
   const [settings, setSettings] = React.useState<AppSettings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = React.useState(true);
   const [busyAction, setBusyAction] = React.useState<BusyAction>(null);
   const [extraParamsError, setExtraParamsError] = React.useState("");
   const [webhookHeadersError, setWebhookHeadersError] = React.useState("");
 
   const push = usePushSubscription(settings.webpush_public_key);
 
-  const loadSettings = React.useCallback(async () => {
-    const next = await api.settings();
-    const merged = mergeSettings(next);
+  // Seed the editable form from the cached settings. The settings query never
+  // refetches on its own (staleTime: Infinity), so this fires only on first load
+  // and after we explicitly write the cache — never clobbering live form edits.
+  React.useEffect(() => {
+    if (!settingsQ.data) return;
+    const merged = mergeSettings(settingsQ.data);
     setSettings(merged);
     setExtraParamsError(jsonObjectError(merged.llm_extra_params));
     setWebhookHeadersError(jsonObjectError(merged.webhook_headers));
-    return merged;
-  }, []);
-
-  React.useEffect(() => {
-    loadSettings()
-      .catch((exc) => toast.error(errorMessage(exc, "Could not load settings")))
-      .finally(() => setLoading(false));
-  }, [loadSettings]);
+  }, [settingsQ.data]);
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -88,6 +91,7 @@ export function SettingsPage() {
     setBusyAction("save");
     try {
       const next = await api.saveSettings(settings);
+      queryClient.setQueryData(queryKeys.settings, next);
       setSettings(mergeSettings(next));
       toast.success("Settings saved");
     } catch (exc) {
@@ -114,7 +118,7 @@ export function SettingsPage() {
     try {
       await push.subscribe();
       toast.success("Web push enabled on this device");
-      await loadSettings();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.settings });
     } catch (exc) {
       toast.error(errorMessage(exc, "Could not enable web push"));
     }
@@ -124,7 +128,7 @@ export function SettingsPage() {
     try {
       await push.unsubscribe();
       toast.success("Web push disabled on this device");
-      await loadSettings();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.settings });
     } catch (exc) {
       toast.error(errorMessage(exc, "Could not disable web push"));
     }

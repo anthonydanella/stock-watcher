@@ -1,24 +1,14 @@
-import React from "react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
-import { api } from "../api";
 import { EventsTable } from "../components/events/EventsTable";
 import { PageHeader } from "../components/shared/PageHeader";
 import { MonitorListSkeleton } from "../components/shared/Skeletons";
-import { errorMessage } from "../lib/format";
-import type { EventRow } from "../types";
+import { useQueryErrorToast } from "../hooks/useQueryErrorToast";
+import { eventsQuery } from "../lib/queries";
 
 export function Events() {
-  const [events, setEvents] = React.useState<EventRow[]>([]);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    api
-      .events()
-      .then(setEvents)
-      .catch((exc) => toast.error(errorMessage(exc, "Could not load events")))
-      .finally(() => setLoading(false));
-  }, []);
+  const eventsQ = useQuery(eventsQuery());
+  useQueryErrorToast(eventsQ.isError, eventsQ.error, "Could not load events");
 
   return (
     <div className="space-y-6">
@@ -26,7 +16,7 @@ export function Events() {
         title="Events"
         description="Status changes, repeated errors, challenge detections, and manual actions."
       />
-      {loading ? <MonitorListSkeleton /> : <EventsTable events={events} />}
+      {eventsQ.isPending ? <MonitorListSkeleton /> : <EventsTable events={eventsQ.data ?? []} />}
     </div>
   );
 }
