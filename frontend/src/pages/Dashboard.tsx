@@ -2,7 +2,6 @@ import {
   Activity,
   Bell,
   BellOff,
-  CheckCircle2,
   ChevronRight,
   Clock,
   PackageSearch,
@@ -13,8 +12,8 @@ import {
 import React from "react";
 import { Link } from "react-router-dom";
 
+import { FleetOverview } from "../components/dashboard/FleetOverview";
 import { EventsTable } from "../components/events/EventsTable";
-import { MonitorCards } from "../components/monitors/MonitorCards";
 import { SchedulerObservabilityPanel } from "../components/scheduler/SchedulerObservabilityPanel";
 import { EmptyState } from "../components/shared/EmptyState";
 import { LinkButton } from "../components/shared/LinkButton";
@@ -26,19 +25,18 @@ import { Button } from "../components/ui/button";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { timeAgo, warningAlertClass } from "../lib/format";
 import { cn } from "../lib/utils";
-import type { Monitor } from "../types";
-
-const ATTENTION_STATUSES = new Set(["in_stock", "low_stock", "error", "challenge"]);
-
-function needsAttention(monitor: Monitor) {
-  if (ATTENTION_STATUSES.has(monitor.status)) return true;
-  const cooldown = monitor.cooldown_until ? new Date(monitor.cooldown_until).getTime() : 0;
-  return cooldown > Date.now();
-}
 
 export function Dashboard() {
-  const { monitors, events, notificationFailures, schedulerStatus, refresh, busy, error } =
-    useDashboardData();
+  const {
+    monitors,
+    events,
+    notificationFailures,
+    lastChanges,
+    schedulerStatus,
+    refresh,
+    busy,
+    error
+  } = useDashboardData();
   const counts = React.useMemo(
     () => ({
       total: monitors.length,
@@ -48,7 +46,6 @@ export function Dashboard() {
     }),
     [monitors]
   );
-  const attention = React.useMemo(() => monitors.filter(needsAttention), [monitors]);
 
   return (
     <div className="space-y-6">
@@ -110,8 +107,8 @@ export function Dashboard() {
           accent={counts.errors > 0 ? "amber" : undefined}
         />
       </div>
-      <section className="space-y-3" aria-labelledby="dashboard-attention">
-        <SectionHeader id="dashboard-attention" title="Needs attention">
+      <section className="space-y-3" aria-labelledby="dashboard-fleet">
+        <SectionHeader id="dashboard-fleet" title="Fleet">
           <LinkButton variant="outline" size="sm" to="/monitors">
             All monitors
             <ChevronRight className="h-3.5 w-3.5" />
@@ -122,13 +119,8 @@ export function Dashboard() {
             icon={<PackageSearch className="h-6 w-6" />}
             message="No monitors yet. Add one to start checking stock."
           />
-        ) : attention.length === 0 ? (
-          <EmptyState
-            icon={<CheckCircle2 className="h-6 w-6 text-emerald-500/80" />}
-            message="All clear — every monitor is healthy and nothing needs attention."
-          />
         ) : (
-          <MonitorCards monitors={attention} onChanged={refresh} />
+          <FleetOverview monitors={monitors} lastChanges={lastChanges} onChanged={refresh} />
         )}
       </section>
       <section className="space-y-3" aria-labelledby="dashboard-events">
