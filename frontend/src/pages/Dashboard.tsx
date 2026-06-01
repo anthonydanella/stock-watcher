@@ -107,8 +107,8 @@ export function Dashboard() {
           accent={counts.errors > 0 ? "amber" : undefined}
         />
       </div>
-      <section className="space-y-3" aria-labelledby="dashboard-fleet">
-        <SectionHeader id="dashboard-fleet" title="Fleet">
+      <section className="space-y-3" aria-labelledby="dashboard-monitors">
+        <SectionHeader id="dashboard-monitors" title="Monitors">
           <LinkButton variant="outline" size="sm" to="/monitors">
             All monitors
             <ChevronRight className="h-3.5 w-3.5" />
