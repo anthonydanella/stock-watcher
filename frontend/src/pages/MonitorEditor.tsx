@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Copy, LoaderCircle, Play } from "lucide-react";
 import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -25,6 +26,7 @@ import { Button } from "../components/ui/button";
 import { CardContent } from "../components/ui/card";
 import { errorMessage, formatSeconds } from "../lib/format";
 import { blankMonitor, isFullMonitor, monitorCopyPayload } from "../lib/monitor";
+import { monitorDetailQuery, monitorHistoryQuery, queryKeys } from "../lib/queries";
 import { cn } from "../lib/utils";
 import type { CheckAttempt, Monitor } from "../types";
 
@@ -33,47 +35,44 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
   const isNew = !id;
   const editing = isNew || mode === "edit";
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const formRef = React.useRef<HTMLFormElement>(null);
-  const [monitor, setMonitor] = React.useState<Partial<Monitor>>(blankMonitor);
-  const [history, setHistory] = React.useState<CheckAttempt[]>([]);
-  const [initialSnapshot, setInitialSnapshot] = React.useState(serializeMonitor(blankMonitor));
-  const [loading, setLoading] = React.useState(!isNew);
-  const [loadError, setLoadError] = React.useState("");
+
+  const monitorQ = useQuery({ ...monitorDetailQuery(id ?? ""), enabled: !isNew });
+  const historyQ = useQuery({ ...monitorHistoryQuery(id ?? ""), enabled: !isNew });
+
+  // Lazy-init the editable form from whatever is cached so a return visit renders
+  // instantly with the right values — no skeleton, no flash to a blank form.
+  const [monitor, setMonitor] = React.useState<Partial<Monitor>>(() => {
+    const cached = id ? queryClient.getQueryData<Monitor>(queryKeys.monitorDetail(id)) : null;
+    return cached ? { ...cached, check_mode: "browser" } : blankMonitor;
+  });
+  const [history, setHistory] = React.useState<CheckAttempt[]>(() =>
+    id ? (queryClient.getQueryData<CheckAttempt[]>(queryKeys.monitorHistory(id)) ?? []) : []
+  );
+  const [initialSnapshot, setInitialSnapshot] = React.useState(() => {
+    const cached = id ? queryClient.getQueryData<Monitor>(queryKeys.monitorDetail(id)) : null;
+    return serializeMonitor(cached ?? blankMonitor);
+  });
   const [busyAction, setBusyAction] = React.useState<
     "save" | "run" | "delete" | "duplicate" | null
   >(null);
 
+  const loading = !isNew && monitorQ.isPending;
+  const loadError = monitorQ.isError ? errorMessage(monitorQ.error, "Could not load monitor") : "";
+  const dirty = serializeMonitor(monitor) !== initialSnapshot;
+
+  // Reseed the form when fresh data arrives or the id changes — but never clobber
+  // unsaved edits, so a background refetch leaves an in-progress form untouched.
   React.useEffect(() => {
-    let active = true;
-    if (!id) {
-      setMonitor(blankMonitor);
-      setHistory([]);
-      setInitialSnapshot(serializeMonitor(blankMonitor));
-      setLoading(false);
-      setLoadError("");
-      return () => {
-        active = false;
-      };
-    }
-    setLoading(true);
-    setLoadError("");
-    Promise.all([api.monitor(id), api.monitorHistory(id)])
-      .then(([nextMonitor, nextHistory]) => {
-        if (!active) return;
-        setMonitor({ ...nextMonitor, check_mode: "browser" });
-        setHistory(nextHistory);
-        setInitialSnapshot(serializeMonitor(nextMonitor));
-      })
-      .catch((exc) => {
-        if (active) setLoadError(errorMessage(exc, "Could not load monitor"));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [id]);
+    if (isNew || !monitorQ.data || dirty) return;
+    setMonitor({ ...monitorQ.data, check_mode: "browser" });
+    setInitialSnapshot(serializeMonitor(monitorQ.data));
+  }, [isNew, monitorQ.data, dirty]);
+
+  React.useEffect(() => {
+    if (historyQ.data) setHistory(historyQ.data);
+  }, [historyQ.data]);
 
   React.useEffect(() => {
     function submitWithShortcut(event: KeyboardEvent) {
@@ -86,7 +85,6 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
   }, []);
 
   const fullMonitor = isFullMonitor(monitor) ? monitor : null;
-  const dirty = serializeMonitor(monitor) !== initialSnapshot;
   const validation = React.useMemo(() => validateMonitor(monitor), [monitor]);
   const blockingIssues = validation.filter((issue) => issue.tone === "error");
   const host = hostFromUrl(monitor.url);
@@ -144,6 +142,10 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
         : await api.updateMonitor(id!, payload);
       setMonitor(saved);
       setInitialSnapshot(serializeMonitor(saved));
+      // Prime the detail cache and refresh the list so the Monitors page and
+      // dashboard reflect the change without refetching from blank.
+      queryClient.setQueryData(queryKeys.monitorDetail(saved.id), saved);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.monitors, exact: true });
       toast.success("Monitor saved");
       return saved;
     } catch (exc) {
@@ -168,6 +170,11 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
       setMonitor(updated);
       setHistory(nextHistory);
       setInitialSnapshot(serializeMonitor(updated));
+      // A run can change status and emit events; sync the caches the other pages read.
+      queryClient.setQueryData(queryKeys.monitorDetail(updated.id), updated);
+      queryClient.setQueryData(queryKeys.monitorHistory(targetId), nextHistory);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.monitors, exact: true });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events, exact: true });
       toast.success("Manual check completed");
     } catch (exc) {
       toast.error(errorMessage(exc, "Run failed"));
@@ -195,6 +202,7 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
     setBusyAction("duplicate");
     try {
       const created = await api.createMonitor(monitorCopyPayload(fullMonitor));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.monitors, exact: true });
       toast.success(`Duplicated as "${created.name}"`);
       navigate(`/monitors/${created.id}`);
     } catch (exc) {
@@ -209,6 +217,9 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
     setBusyAction("delete");
     try {
       await api.deleteMonitor(id);
+      queryClient.removeQueries({ queryKey: queryKeys.monitorDetail(id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.monitors, exact: true });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.events, exact: true });
       navigate("/monitors");
     } catch (exc) {
       toast.error(errorMessage(exc, "Delete failed"));
