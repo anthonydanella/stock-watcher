@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
 
@@ -15,11 +16,28 @@ import { pluralize, stockSortValue, timeValue } from "../components/monitors/lis
 import type { MonitorActionKind } from "../components/monitors/MonitorActions";
 import { errorMessage } from "../lib/format";
 import { isCoolingDown, monitorCopyPayload } from "../lib/monitor";
+import { monitorsQuery, queryKeys } from "../lib/queries";
 import type { Monitor } from "../types";
+import { useQueryErrorToast } from "./useQueryErrorToast";
 
 export function useMonitorList() {
-  const [monitors, setMonitors] = React.useState<Monitor[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const queryClient = useQueryClient();
+  const monitorsQ = useQuery(monitorsQuery());
+  useQueryErrorToast(monitorsQ.isError, monitorsQ.error, "Could not load monitors");
+  // Cached data renders instantly on revisit (no skeleton, no shift); only the
+  // very first load with an empty cache shows the loading state.
+  const monitors = React.useMemo(() => monitorsQ.data ?? [], [monitorsQ.data]);
+  const loading = monitorsQ.isPending;
+
+  // Mutations patch the shared cache directly (after the server confirms) so the
+  // dashboard and alert pages see the same monitors without a refetch.
+  const patchCache = React.useCallback(
+    (updater: (current: Monitor[]) => Monitor[]) => {
+      queryClient.setQueryData<Monitor[]>(queryKeys.monitors, (current) => updater(current ?? []));
+    },
+    [queryClient]
+  );
+
   const [busyActions, setBusyActions] = React.useState<Record<number, MonitorActionKind>>({});
   const [query, setQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
@@ -34,23 +52,8 @@ export function useMonitorList() {
     null
   );
 
-  const refresh = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      setMonitors(await api.monitors());
-    } catch (exc) {
-      toast.error(errorMessage(exc, "Could not load monitors"));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
   function patchMonitor(updated: Monitor) {
-    setMonitors((current) =>
+    patchCache((current) =>
       current.map((monitor) => (monitor.id === updated.id ? updated : monitor))
     );
   }
@@ -74,7 +77,7 @@ export function useMonitorList() {
     setBusyActions((current) => ({ ...current, [monitor.id]: "duplicate" }));
     try {
       const created = await api.createMonitor(monitorCopyPayload(monitor));
-      setMonitors((current) => [...current, created]);
+      patchCache((current) => [...current, created]);
       toast.success(`Duplicated as "${created.name}"`);
     } catch (exc) {
       toast.error(errorMessage(exc, "Could not duplicate monitor"));
@@ -322,7 +325,7 @@ export function useMonitorList() {
       if (result.status === "fulfilled") deleted.add(result.value);
       else failed++;
     }
-    setMonitors((current) => current.filter((m) => !deleted.has(m.id)));
+    patchCache((current) => current.filter((m) => !deleted.has(m.id)));
     setSelected(new Set());
     setBulkBusy(null);
     if (failed) toast.error(`${failed} of ${targets.length} could not be deleted.`);
