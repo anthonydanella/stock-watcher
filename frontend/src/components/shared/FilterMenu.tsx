@@ -41,8 +41,10 @@ export function FilterMenu<T extends string>({
         }
       >
         <span className={cn(!active && "text-muted-foreground")}>{label}</span>
-        {active && current ? <span className="text-muted-foreground">{current.label}</span> : null}
-        <ChevronDown className="size-3.5 text-muted-foreground" />
+        {active && current ? (
+          <span className="max-w-[10rem] truncate text-muted-foreground">{current.label}</span>
+        ) : null}
+        <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-44">
         {options.map((option) => {
@@ -50,10 +52,10 @@ export function FilterMenu<T extends string>({
           const selected = value === option.id;
           return (
             <DropdownMenuItem key={option.id} onClick={() => onChange(option.id)} className="gap-2">
-              <Check className={cn("size-4", selected ? "opacity-100" : "opacity-0")} />
-              <span className="flex-1">{option.label}</span>
+              <Check className={cn("size-4 shrink-0", selected ? "opacity-100" : "opacity-0")} />
+              <span className="min-w-0 flex-1 truncate">{option.label}</span>
               {count !== undefined ? (
-                <span className="text-xs text-muted-foreground tabular-nums">{count}</span>
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{count}</span>
               ) : null}
             </DropdownMenuItem>
           );
