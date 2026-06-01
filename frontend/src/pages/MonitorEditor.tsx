@@ -231,11 +231,11 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
 
   return (
     <div className={cn("space-y-6", editing && "pb-24")}>
-      <div className="sticky top-[calc(5.75rem+env(safe-area-inset-top))] z-10 -mx-3 -mt-4 space-y-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:-mt-6 sm:px-4 lg:top-[calc(3.5rem+env(safe-area-inset-top))]">
+      <div className="sticky top-[var(--app-header-height,calc(5.3125rem+env(safe-area-inset-top)))] z-10 -mx-3 -mt-4 space-y-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:-mt-6 sm:px-4">
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/monitors"))}
-          className="group inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="group hidden items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
         >
           <ArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
           Back
@@ -243,8 +243,8 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
 
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="wrap-break-word text-lg font-semibold tracking-normal sm:text-2xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="wrap-break-word min-w-0 max-w-full text-lg font-semibold tracking-normal sm:text-2xl">
                 {isNew ? "New monitor" : monitor.name || "Monitor"}
               </h1>
               {dirty ? <StatusPill tone="warning">Unsaved</StatusPill> : null}

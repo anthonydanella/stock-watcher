@@ -1,4 +1,5 @@
 import { Radar } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import packageInfo from "../../../package.json";
 import { AlertRules } from "../../pages/AlertRules";
@@ -12,6 +13,29 @@ import { navLinkClass } from "./navigation";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Shell() {
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Publish the app header's rendered height as --app-header-height so sticky
+  // sub-headers (e.g. the monitor editor) can offset themselves to sit flush
+  // beneath it. Measuring the real element keeps the two in sync across
+  // breakpoints (the header wraps to two rows below lg) and safe-area changes
+  // (the height includes pt-[env(safe-area-inset-top)]), with no magic numbers.
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const root = document.documentElement;
+    const sync = () => {
+      root.style.setProperty("--app-header-height", `${header.getBoundingClientRect().height}px`);
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--app-header-height");
+    };
+  }, []);
+
   // overflow-x-clip (not -hidden) prevents horizontal scroll without forcing
   // overflow-y to auto, which would establish a scroll container and break
   // position: sticky for the nav and page headers.
@@ -29,7 +53,10 @@ export function Shell() {
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 text-primary/[0.20] [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent)]"
       />
-      <header className="sticky top-0 z-20 border-b border-border/60 bg-card/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/60">
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-20 border-b border-border/60 bg-card/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/60"
+      >
         <div className="mx-auto flex min-h-14 w-full max-w-450 flex-wrap items-center gap-x-3 gap-y-2 px-3 sm:px-4 py-2 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] lg:flex-nowrap lg:gap-6 lg:py-0">
           <div className="flex min-w-0 items-center gap-2">
             <Link
