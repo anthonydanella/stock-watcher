@@ -28,6 +28,7 @@ export function useMonitorList() {
   const [sortDir, setSortDir] = React.useState<SortDir>("asc");
   const [groupMode, setGroupMode] = React.useState<GroupMode>("host");
   const [tagFilter, setTagFilter] = React.useState<string>("all");
+  const [hostFilter, setHostFilter] = React.useState<string>("all");
   const [selected, setSelected] = React.useState<Set<number>>(() => new Set());
   const [bulkBusy, setBulkBusy] = React.useState<"enable" | "pause" | "run" | "delete" | null>(
     null
@@ -128,6 +129,32 @@ export function useMonitorList() {
     [allTags]
   );
 
+  const allHosts = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const monitor of monitors) {
+      const host = hostFromUrl(monitor.url);
+      if (host) set.add(host);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [monitors]);
+
+  const hostCounts = React.useMemo(() => {
+    const counts: Record<string, number> = { all: monitors.length };
+    for (const monitor of monitors) {
+      const host = hostFromUrl(monitor.url);
+      if (host) counts[host] = (counts[host] ?? 0) + 1;
+    }
+    return counts;
+  }, [monitors]);
+
+  const hostOptions = React.useMemo(
+    () => [
+      { id: "all", label: "All hosts" },
+      ...allHosts.map((host) => ({ id: host, label: host }))
+    ],
+    [allHosts]
+  );
+
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     return monitors.filter((monitor) => {
@@ -142,9 +169,10 @@ export function useMonitorList() {
       if (enabledFilter === "cooling" && (!monitor.enabled || !isCoolingDown(monitor)))
         return false;
       if (tagFilter !== "all" && !monitor.tags.includes(tagFilter)) return false;
+      if (hostFilter !== "all" && hostFromUrl(monitor.url) !== hostFilter) return false;
       return true;
     });
-  }, [monitors, query, statusFilter, enabledFilter, tagFilter]);
+  }, [monitors, query, statusFilter, enabledFilter, tagFilter, hostFilter]);
 
   const sorted = React.useMemo(() => {
     const direction = sortDir === "asc" ? 1 : -1;
@@ -311,12 +339,17 @@ export function useMonitorList() {
   }
 
   const hasFilters =
-    query !== "" || statusFilter !== "all" || enabledFilter !== "all" || tagFilter !== "all";
+    query !== "" ||
+    statusFilter !== "all" ||
+    enabledFilter !== "all" ||
+    tagFilter !== "all" ||
+    hostFilter !== "all";
   function clearFilters() {
     setQuery("");
     setStatusFilter("all");
     setEnabledFilter("all");
     setTagFilter("all");
+    setHostFilter("all");
   }
 
   return {
@@ -336,10 +369,14 @@ export function useMonitorList() {
     setGroupMode,
     tagFilter,
     setTagFilter,
+    hostFilter,
+    setHostFilter,
     statusCounts,
     enabledCounts,
     tagOptions,
     tagCounts,
+    hostOptions,
+    hostCounts,
     sorted,
     grouped,
     selected,

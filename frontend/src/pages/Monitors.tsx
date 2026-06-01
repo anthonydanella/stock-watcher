@@ -46,6 +46,10 @@ export function Monitors() {
             onTagFilterChange={list.setTagFilter}
             tagOptions={list.tagOptions}
             tagCounts={list.tagCounts}
+            hostFilter={list.hostFilter}
+            onHostFilterChange={list.setHostFilter}
+            hostOptions={list.hostOptions}
+            hostCounts={list.hostCounts}
           />
 
           <MonitorCardList

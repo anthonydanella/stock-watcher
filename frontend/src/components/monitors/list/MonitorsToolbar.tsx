@@ -30,7 +30,11 @@ export function MonitorsToolbar({
   tagFilter,
   onTagFilterChange,
   tagOptions,
-  tagCounts
+  tagCounts,
+  hostFilter,
+  onHostFilterChange,
+  hostOptions,
+  hostCounts
 }: {
   query: string;
   onQueryChange: (value: string) => void;
@@ -50,6 +54,10 @@ export function MonitorsToolbar({
   onTagFilterChange: (value: string) => void;
   tagOptions: { id: string; label: string }[];
   tagCounts: Record<string, number>;
+  hostFilter: string;
+  onHostFilterChange: (value: string) => void;
+  hostOptions: { id: string; label: string }[];
+  hostCounts: Record<string, number>;
 }) {
   const countLabel =
     visibleCount === totalCount
@@ -85,6 +93,15 @@ export function MonitorsToolbar({
           onChange={onEnabledFilterChange}
           counts={enabledCounts}
         />
+        {hostOptions.length > 1 ? (
+          <FilterMenu
+            label="Host"
+            options={hostOptions}
+            value={hostFilter}
+            onChange={onHostFilterChange}
+            counts={hostCounts}
+          />
+        ) : null}
         {tagOptions.length > 1 ? (
           <FilterMenu
             label="Tag"
