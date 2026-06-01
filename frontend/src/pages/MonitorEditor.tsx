@@ -393,6 +393,7 @@ function RouteTab({
   return (
     <Link
       to={to}
+      replace
       aria-current={active ? "page" : undefined}
       className={cn(
         "-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
