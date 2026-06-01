@@ -68,7 +68,7 @@ export function MonitorScreenshot({ monitor, compact = false, className }: Monit
           alt={`Latest screenshot for ${monitor.name}`}
           className={cn(
             "aspect-video w-full object-cover transition duration-150 group-hover:scale-[1.02]",
-            compact ? "" : "max-h-44"
+            compact ? "" : "max-h-28 sm:max-h-44"
           )}
           loading="lazy"
         />
