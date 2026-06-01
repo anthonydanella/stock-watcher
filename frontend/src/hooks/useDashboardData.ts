@@ -1,8 +1,9 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 
-import { api } from "../api";
 import { errorMessage } from "../lib/format";
-import type { EventRow, Monitor, SchedulerStatus } from "../types";
+import { eventsQuery, monitorsQuery, queryKeys, schedulerStatusQuery } from "../lib/queries";
+import type { EventRow } from "../types";
 
 const AUTO_REFRESH_MS = 15_000;
 const NOTIFICATION_FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -33,74 +34,48 @@ function summarizeStatusChanges(events: EventRow[]): Record<number, EventRow> {
 }
 
 export function useDashboardData() {
-  const [monitors, setMonitors] = React.useState<Monitor[]>([]);
-  const [events, setEvents] = React.useState<EventRow[]>([]);
-  const [notificationFailures, setNotificationFailures] =
-    React.useState<NotificationFailureSummary>({ count: 0, lastAt: null });
-  const [lastChanges, setLastChanges] = React.useState<Record<number, EventRow>>({});
-  const [schedulerStatus, setSchedulerStatus] = React.useState<SchedulerStatus | null>(null);
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState("");
-  const refreshRequest = React.useRef(0);
-  const refreshInFlight = React.useRef(false);
+  const queryClient = useQueryClient();
+  // refetchInterval polls every 15s while the tab is focused (React Query pauses
+  // it in the background by default); window-focus revalidation is inherited
+  // from the client defaults, replacing the hand-rolled visibility listeners.
+  const monitorsQ = useQuery({ ...monitorsQuery(), refetchInterval: AUTO_REFRESH_MS });
+  const eventsQ = useQuery({ ...eventsQuery(), refetchInterval: AUTO_REFRESH_MS });
+  const schedulerQ = useQuery({ ...schedulerStatusQuery(), refetchInterval: AUTO_REFRESH_MS });
 
-  const refresh = React.useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (refreshInFlight.current) return;
-    refreshInFlight.current = true;
-    const requestId = refreshRequest.current + 1;
-    refreshRequest.current = requestId;
-    if (!silent) {
-      setBusy(true);
-      setError("");
-    }
+  // The manual Refresh button spins; the silent 15s poll and focus refetches do not.
+  const [manualBusy, setManualBusy] = React.useState(false);
+  const refresh = React.useCallback(async () => {
+    setManualBusy(true);
     try {
-      const [nextMonitors, nextEvents, nextSchedulerStatus] = await Promise.all([
-        api.monitors(),
-        api.events(),
-        api.schedulerStatus()
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: queryKeys.monitors, exact: true }),
+        queryClient.refetchQueries({ queryKey: queryKeys.events, exact: true }),
+        queryClient.refetchQueries({ queryKey: queryKeys.schedulerStatus, exact: true })
       ]);
-      if (requestId !== refreshRequest.current) return;
-      setMonitors(nextMonitors);
-      setEvents(nextEvents.slice(0, 8));
-      setNotificationFailures(summarizeNotificationFailures(nextEvents));
-      setLastChanges(summarizeStatusChanges(nextEvents));
-      setSchedulerStatus(nextSchedulerStatus);
-      setError("");
-    } catch (exc) {
-      if (requestId !== refreshRequest.current) return;
-      setError(errorMessage(exc, "Could not refresh dashboard"));
     } finally {
-      refreshInFlight.current = false;
-      if (!silent && requestId === refreshRequest.current) setBusy(false);
+      setManualBusy(false);
     }
-  }, []);
+  }, [queryClient]);
 
-  React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const monitors = monitorsQ.data ?? [];
+  const allEvents = React.useMemo(() => eventsQ.data ?? [], [eventsQ.data]);
+  const notificationFailures = React.useMemo(
+    () => summarizeNotificationFailures(allEvents),
+    [allEvents]
+  );
+  const lastChanges = React.useMemo(() => summarizeStatusChanges(allEvents), [allEvents]);
+  const events = React.useMemo(() => allEvents.slice(0, 8), [allEvents]);
 
-  React.useEffect(() => {
-    const refreshIfVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      void refresh({ silent: true });
-    };
-    const timerId = window.setInterval(refreshIfVisible, AUTO_REFRESH_MS);
-    document.addEventListener("visibilitychange", refreshIfVisible);
-    window.addEventListener("focus", refreshIfVisible);
-    return () => {
-      window.clearInterval(timerId);
-      document.removeEventListener("visibilitychange", refreshIfVisible);
-      window.removeEventListener("focus", refreshIfVisible);
-    };
-  }, [refresh]);
+  const firstError = monitorsQ.error ?? eventsQ.error ?? schedulerQ.error;
+  const error = firstError ? errorMessage(firstError, "Could not refresh dashboard") : "";
 
   return {
     monitors,
     events,
     notificationFailures,
     lastChanges,
-    schedulerStatus,
-    busy,
+    schedulerStatus: schedulerQ.data ?? null,
+    busy: manualBusy,
     error,
     refresh
   };
