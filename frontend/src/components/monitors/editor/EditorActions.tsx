@@ -37,28 +37,41 @@ export function EditorActions({
   const saveAndRunDisabled = busy || blockingCount > 0;
 
   let status = isNew ? "Ready to create" : "Unsaved changes";
+  let mobileStatus = isNew ? "Ready" : "Unsaved";
   let statusClass = "text-foreground";
   if (blockingCount > 0) {
     status = `${blockingCount} issue${blockingCount === 1 ? "" : "s"} to fix`;
+    mobileStatus = `${blockingCount} issue${blockingCount === 1 ? "" : "s"}`;
     statusClass = "text-destructive";
   } else if (!isNew && !dirty) {
     status = "All changes saved";
+    mobileStatus = "Saved";
     statusClass = "text-muted-foreground";
   }
 
   return (
-    <ActionBar ariaLabel="Editor actions">
-      <span className={cn("text-sm font-medium", statusClass)}>{status}</span>
+    <ActionBar ariaLabel="Editor actions" className="max-w-[calc(100vw-2rem)] flex-nowrap">
+      <span className={cn("whitespace-nowrap text-sm font-medium", statusClass)}>
+        <span className="sm:hidden">{mobileStatus}</span>
+        <span className="hidden sm:inline">{status}</span>
+      </span>
       <ActionBarSeparator />
       {!isNew ? (
-        <Button variant="ghost" size="sm" disabled={saveAndRunDisabled} onClick={onSaveAndRun}>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Save and run"
+          disabled={saveAndRunDisabled}
+          onClick={onSaveAndRun}
+        >
           {busyAction === "run" ? <LoaderCircle className="animate-spin" /> : <Play />}
-          Save & run
+          <span className="hidden sm:inline">Save & run</span>
         </Button>
       ) : null}
       <Button size="sm" disabled={saveDisabled} onClick={onSave}>
         {busyAction === "save" ? <LoaderCircle className="animate-spin" /> : <Save />}
-        {isNew ? "Create monitor" : "Save changes"}
+        <span className="sm:hidden">{isNew ? "Create" : "Save"}</span>
+        <span className="hidden sm:inline">{isNew ? "Create monitor" : "Save changes"}</span>
       </Button>
     </ActionBar>
   );
