@@ -16,7 +16,7 @@ export function Shell() {
   // overflow-y to auto, which would establish a scroll container and break
   // position: sticky for the nav and page headers.
   return (
-    <div className="min-h-screen overflow-x-clip">
+    <div className="min-h-screen overflow-x-clip [--app-header-height:5.5rem] lg:[--app-header-height:3.5rem]">
       {/* Soft ambient wash behind everything — a faint brand-tinted glow up top
           that fades into the page, giving the flat background subtle depth. */}
       <div
