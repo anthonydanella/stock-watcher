@@ -231,7 +231,7 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
 
   return (
     <div className={cn("space-y-6", editing && "pb-24")}>
-      <div className="sticky top-14 z-10 -mx-3 -mt-4 space-y-3 border-b border-border bg-background/95 px-3 pb-3 py-2 backdrop-blur sm:-mx-4 sm:-mt-6 sm:px-4">
+      <div className="sticky top-[calc(5rem+env(safe-area-inset-top))] z-10 -mx-3 -mt-4 space-y-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:-mt-6 sm:px-4 lg:top-[calc(3.5rem+env(safe-area-inset-top))]">
         <button
           type="button"
           onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/monitors"))}
@@ -241,10 +241,10 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
           Back
         </button>
 
-        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h1 className="wrap-break-word text-2xl font-semibold tracking-normal">
+            <div className="flex items-center gap-2">
+              <h1 className="wrap-break-word text-lg font-semibold tracking-normal sm:text-2xl">
                 {isNew ? "New monitor" : monitor.name || "Monitor"}
               </h1>
               {dirty ? <StatusPill tone="warning">Unsaved</StatusPill> : null}
@@ -254,7 +254,7 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
                 </StatusPill>
               ) : null}
             </div>
-            <p className="mt-1 flex min-w-0 max-w-3xl items-center gap-1.5 text-sm text-muted-foreground">
+            <p className="mt-0.5 flex min-w-0 max-w-3xl items-center gap-1.5 text-xs text-muted-foreground sm:mt-1 sm:text-sm">
               {host && monitor.url ? (
                 <>
                   <a
@@ -281,6 +281,8 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
             <div className="flex shrink-0 gap-2">
               <Button
                 variant="outline"
+                size="sm"
+                aria-label="Duplicate monitor"
                 disabled={busyAction === "duplicate" || Boolean(busyAction)}
                 onClick={duplicate}
               >
@@ -289,16 +291,26 @@ export function MonitorEditor({ mode = "edit" }: { mode?: "view" | "edit" }) {
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
-                {busyAction === "duplicate" ? "Duplicating..." : "Duplicate"}
+                <span className="hidden sm:inline">
+                  {busyAction === "duplicate" ? "Duplicating..." : "Duplicate"}
+                </span>
               </Button>
               {!editing ? (
-                <Button variant="default" disabled={busyAction === "run"} onClick={runNow}>
+                <Button
+                  variant="default"
+                  size="sm"
+                  disabled={busyAction === "run"}
+                  onClick={runNow}
+                >
                   {busyAction === "run" ? (
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                   ) : (
                     <Play className="h-4 w-4" />
                   )}
-                  {busyAction === "run" ? "Checking..." : "Run check now"}
+                  <span className="sm:hidden">{busyAction === "run" ? "Checking" : "Run"}</span>
+                  <span className="hidden sm:inline">
+                    {busyAction === "run" ? "Checking..." : "Run check now"}
+                  </span>
                 </Button>
               ) : null}
             </div>
