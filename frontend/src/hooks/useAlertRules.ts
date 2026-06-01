@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { toast } from "sonner";
 
@@ -5,12 +6,23 @@ import { api } from "../api";
 import { ruleState, ruleToInput } from "../components/alerts/helpers";
 import type { RuleFilter } from "../components/alerts/types";
 import { errorMessage } from "../lib/format";
+import { monitorsQuery, notificationRulesQuery, queryKeys } from "../lib/queries";
 import type { Monitor, NotificationRule, NotificationRuleInput } from "../types";
+import { useQueryErrorToast } from "./useQueryErrorToast";
 
 export function useAlertRules() {
-  const [rules, setRules] = React.useState<NotificationRule[]>([]);
-  const [monitors, setMonitors] = React.useState<Monitor[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const queryClient = useQueryClient();
+  const rulesQ = useQuery(notificationRulesQuery());
+  const monitorsQ = useQuery(monitorsQuery());
+  useQueryErrorToast(
+    rulesQ.isError || monitorsQ.isError,
+    rulesQ.error ?? monitorsQ.error,
+    "Could not load alert rules"
+  );
+  const rules = rulesQ.data ?? [];
+  const monitors = React.useMemo(() => monitorsQ.data ?? [], [monitorsQ.data]);
+  const loading = rulesQ.isPending || monitorsQ.isPending;
+
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editingRule, setEditingRule] = React.useState<NotificationRule | null>(null);
   const [busyId, setBusyId] = React.useState<number | null>(null);
@@ -24,19 +36,12 @@ export function useAlertRules() {
     return map;
   }, [monitors]);
 
-  const refresh = React.useCallback(async () => {
-    try {
-      const [rulesList, monitorList] = await Promise.all([api.notificationRules(), api.monitors()]);
-      setRules(rulesList);
-      setMonitors(monitorList);
-    } catch (exc) {
-      toast.error(errorMessage(exc, "Could not load alert rules"));
-    }
-  }, []);
-
-  React.useEffect(() => {
-    void refresh().finally(() => setLoading(false));
-  }, [refresh]);
+  // Rule mutations only change rules, so revalidate that key; the monitor list
+  // is owned elsewhere and stays cached.
+  const refresh = React.useCallback(
+    () => queryClient.invalidateQueries({ queryKey: queryKeys.notificationRules }),
+    [queryClient]
+  );
 
   function openNew() {
     setEditingRule(null);
