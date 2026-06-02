@@ -54,11 +54,11 @@ export function RuleCard({
           : `${remaining} more needed to fire`;
   const accent =
     state === "triggered"
-      ? "border-l-emerald-500"
+      ? "border-l-[color:var(--success-solid)]"
       : state === "armed"
         ? "border-l-primary/60"
         : "border-l-muted-foreground/20";
-  const tint = state === "triggered" ? "bg-emerald-50/40 dark:bg-emerald-950/10" : "";
+  const tint = state === "triggered" ? "bg-success-faint" : "";
 
   return (
     <Card
@@ -125,7 +125,7 @@ export function RuleCard({
               <span
                 className={cn(
                   "font-mono text-2xl font-semibold leading-none tabular-nums",
-                  state === "triggered" && "text-emerald-700 dark:text-emerald-300"
+                  state === "triggered" && "text-success-accent"
                 )}
               >
                 {matching}
@@ -200,7 +200,7 @@ function HostChip({ bucket }: { bucket: HostBucket }) {
       <Tooltip>
         <TooltipTrigger
           aria-label="Mixed-host rule"
-          className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200"
+          className="inline-flex items-center gap-1 rounded-full border border-warning-strong bg-warning-subtle px-1.5 py-0.5 text-[11px] text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <AlertTriangle className="h-3 w-3" aria-hidden="true" />
           Mixed hosts ({bucket.hosts.length})
@@ -231,7 +231,7 @@ function HostChip({ bucket }: { bucket: HostBucket }) {
 function StateDot({ state }: { state: Exclude<RuleFilter, "all"> }) {
   const cls =
     state === "triggered"
-      ? "bg-emerald-500 ring-2 ring-emerald-500/20"
+      ? "bg-success-solid ring-2 ring-success-tint"
       : state === "armed"
         ? "bg-primary/70"
         : "bg-muted-foreground/40";
@@ -240,11 +240,7 @@ function StateDot({ state }: { state: Exclude<RuleFilter, "all"> }) {
 
 function StateBadge({ state }: { state: Exclude<RuleFilter, "all"> }) {
   if (state === "triggered") {
-    return (
-      <Badge className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">
-        Triggered
-      </Badge>
-    );
+    return <Badge className="rounded-full surface-success">Triggered</Badge>;
   }
   if (state === "armed") {
     return (
@@ -274,7 +270,7 @@ function ProgressBar({
       <div
         className={cn(
           "absolute inset-y-0 left-0 transition-all",
-          satisfied ? "bg-emerald-500/80" : "bg-primary/70"
+          satisfied ? "bg-[var(--success-solid)]/80" : "bg-primary/70"
         )}
         style={{ width: `${progress}%` }}
         aria-hidden="true"

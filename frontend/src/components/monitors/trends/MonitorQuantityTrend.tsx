@@ -93,7 +93,7 @@ export function MonitorQuantityTrend({
               <StatItem
                 label="Low ≤"
                 value={lowThreshold.toLocaleString()}
-                valueClassName="text-yellow-700"
+                valueClassName="text-caution-accent"
               />
             ) : null}
             <StatItem label="Samples" value={series.length.toLocaleString()} />
@@ -141,7 +141,7 @@ export function MonitorQuantityTrend({
                 <Label
                   value={`Low ≤ ${lowThreshold}`}
                   position="insideTopRight"
-                  className="fill-yellow-700 font-mono text-[9px] font-semibold"
+                  className="[fill:var(--caution-accent)] font-mono text-[9px] font-semibold"
                   fontSize={9}
                 />
               </ReferenceLine>

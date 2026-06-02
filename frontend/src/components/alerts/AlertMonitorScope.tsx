@@ -172,14 +172,14 @@ export function AlertMonitorScope({
               )}
             </div>
             {selectedIds.length === 0 ? (
-              <p className="text-xs text-amber-700 dark:text-amber-400">
+              <p className="text-xs text-warning-accent">
                 Select at least one monitor, or switch to "All monitors".
               </p>
             ) : null}
             {selectedHosts.length > 1 ? (
-              <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 px-2.5 py-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+              <div className="flex items-start gap-2 rounded-md border border-warning-strong bg-warning-subtle px-2.5 py-2 text-xs text-warning">
                 <AlertTriangle
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning-vivid"
                   aria-hidden="true"
                 />
                 <div className="space-y-1">

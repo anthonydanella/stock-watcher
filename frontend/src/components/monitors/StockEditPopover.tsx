@@ -95,7 +95,7 @@ export function StockEditPopover({
               <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>Last {trend.length} checks</span>
                 {monitor.low_stock_threshold != null ? (
-                  <span className="text-emerald-700/80 dark:text-emerald-300/80">
+                  <span className="text-[var(--success-accent)]/80">
                     ⋯ low ≤ {monitor.low_stock_threshold}
                   </span>
                 ) : null}

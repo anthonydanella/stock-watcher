@@ -8,8 +8,8 @@ import { InfoTooltip } from "../shared/InfoTooltip";
 type Status = "syncing" | "live" | "paused";
 
 const STATUS_META: Record<Status, { label: string; dot: string }> = {
-  syncing: { label: "Refreshing…", dot: "bg-emerald-500" },
-  live: { label: "Live", dot: "bg-emerald-500" },
+  syncing: { label: "Refreshing…", dot: "bg-success-solid" },
+  live: { label: "Live", dot: "bg-success-solid" },
   paused: { label: "Auto-refresh paused", dot: "bg-muted-foreground/50" }
 };
 

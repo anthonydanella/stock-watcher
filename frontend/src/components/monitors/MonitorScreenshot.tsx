@@ -27,7 +27,7 @@ export function MonitorScreenshot({ monitor, compact = false, className }: Monit
         <div
           className={cn(
             "flex aspect-video w-20 min-h-0 items-center justify-center rounded-md border border-dashed border-border bg-secondary",
-            failed ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+            failed ? "text-warning-vivid" : "text-muted-foreground",
             className
           )}
           title={failed ? `${label}: ${monitor.last_screenshot_error}` : label}
@@ -43,7 +43,7 @@ export function MonitorScreenshot({ monitor, compact = false, className }: Monit
       <div
         className={cn(
           "flex items-center gap-2 rounded-md border border-dashed border-border bg-secondary/40 px-3 py-1.5 text-xs",
-          failed ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+          failed ? "text-warning-vivid" : "text-muted-foreground",
           className
         )}
         title={failed ? monitor.last_screenshot_error : undefined}

@@ -273,7 +273,7 @@ function MonitorRow({
             <Tooltip>
               <TooltipTrigger
                 aria-label="Last error"
-                className="inline-flex shrink-0 rounded-full text-amber-600 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-amber-400"
+                className="inline-flex shrink-0 rounded-full link-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <AlertTriangle className="h-4 w-4" />
               </TooltipTrigger>
@@ -293,7 +293,7 @@ function MonitorRow({
         <div className="flex flex-col gap-0.5">
           <StatusBadge status={monitor.status} live={monitor.enabled} className="w-fit" />
           {cooling ? (
-            <span className="text-[11px] leading-tight text-violet-700 dark:text-violet-300">
+            <span className="text-[11px] leading-tight text-special-accent">
               Cooling {timeAgo(monitor.cooldown_until)}
             </span>
           ) : null}

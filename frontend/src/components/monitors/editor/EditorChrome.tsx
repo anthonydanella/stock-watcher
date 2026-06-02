@@ -93,8 +93,8 @@ export function StatusPill({
     <span
       className={cn(
         "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium",
-        tone === "success" && "border-emerald-200 bg-emerald-50 text-emerald-800",
-        tone === "warning" && "border-amber-200 bg-amber-50 text-amber-900",
+        tone === "success" && "surface-success",
+        tone === "warning" && "surface-warning",
         tone === "muted" && "bg-secondary text-muted-foreground"
       )}
     >

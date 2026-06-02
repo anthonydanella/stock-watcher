@@ -139,8 +139,8 @@ export function EvidenceViewer({
               key={field.label}
               className={cn(
                 "min-w-0 rounded-md border bg-background p-3",
-                field.tone === "warning" && "border-amber-200 bg-amber-50",
-                field.tone === "error" && "border-red-200 bg-red-50"
+                field.tone === "warning" && "border-warning-subtle bg-warning-subtle",
+                field.tone === "error" && "border-danger-subtle bg-danger-subtle"
               )}
             >
               <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -198,10 +198,7 @@ export function HighlightedText({
   ranges.forEach((range) => {
     if (range.start > cursor) nodes.push(value.slice(cursor, range.start));
     nodes.push(
-      <mark
-        key={`${range.start}-${range.end}`}
-        className="rounded bg-amber-200 px-0.5 text-amber-950"
-      >
+      <mark key={`${range.start}-${range.end}`} className="rounded mark-warning px-0.5">
         {value.slice(range.start, range.end)}
       </mark>
     );

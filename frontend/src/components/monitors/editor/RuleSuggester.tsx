@@ -136,7 +136,7 @@ export function RuleSuggester({
           </p>
           {error ? <Alert variant="destructive">{error}</Alert> : null}
           {suggestion ? (
-            <div className="space-y-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900/40 dark:bg-emerald-950/40">
+            <div className="space-y-2 rounded-md border border-success-subtle bg-success-subtle p-3 text-sm">
               <SuggestionRow
                 label="Extractor"
                 value={`${suggestion.rule_type}${suggestion.selector_or_path ? ` · ${suggestion.selector_or_path}` : ""}`}
@@ -169,7 +169,7 @@ export function RuleSuggester({
                 </>
               ) : null}
               {suggestion.explanation ? (
-                <p className="border-t border-emerald-200/60 pt-2 text-xs text-emerald-900/80 dark:border-emerald-900/40 dark:text-emerald-200/80">
+                <p className="border-t border-success-subtle pt-2 text-xs text-success">
                   {suggestion.explanation}
                 </p>
               ) : null}
@@ -230,14 +230,8 @@ export function RuleSuggester({
 function SuggestionRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="grid grid-cols-[7rem_1fr] gap-2 text-xs">
-      <span className="text-emerald-900/70 dark:text-emerald-200/70">{label}</span>
-      <span
-        className={
-          mono
-            ? "break-all font-mono text-emerald-900 dark:text-emerald-200"
-            : "break-words text-emerald-900 dark:text-emerald-200"
-        }
-      >
+      <span className="text-[var(--success-text)]/70">{label}</span>
+      <span className={mono ? "break-all font-mono text-success" : "break-words text-success"}>
         {value}
       </span>
     </div>

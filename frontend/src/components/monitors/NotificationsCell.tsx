@@ -121,7 +121,7 @@ export function NotificationsCell({
         </div>
 
         {state.warning ? (
-          <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900 dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
+          <div className="flex items-start gap-2 rounded-md border border-warning-strong bg-warning-subtle px-2 py-1.5 text-[11px] text-warning">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>{state.warning}</span>
           </div>
@@ -144,12 +144,9 @@ type CellState = {
   warning: string | null;
 };
 
-const CHIP_ON =
-  "border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/60";
-const CHIP_OFF =
-  "border-zinc-200 bg-zinc-50 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700/50 dark:bg-zinc-800/40 dark:text-zinc-300 dark:hover:bg-zinc-800/60";
-const CHIP_WARN =
-  "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-950/50";
+const CHIP_ON = "chip-success";
+const CHIP_OFF = "chip-neutral";
+const CHIP_WARN = "chip-warning";
 
 function describeState(monitor: Monitor): CellState {
   if (!monitor.notifications_enabled) {

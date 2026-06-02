@@ -24,7 +24,7 @@ export function StatusBadge({
           aria-hidden="true"
           className={cn(
             "size-1.5 shrink-0 rounded-full motion-safe:animate-pulse",
-            status === "low_stock" ? "bg-yellow-500" : "bg-emerald-500"
+            status === "low_stock" ? "bg-caution-solid" : "bg-success-solid"
           )}
         />
       ) : null}

@@ -210,7 +210,7 @@ export function SettingsPage() {
                     )}
                   </div>
                   {showInstallHint ? (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                    <p className="text-xs text-warning-accent">
                       On iPhone/iPad, add Stock Watcher to your Home Screen (Share → Add to Home
                       Screen), open it from there, then enable web push.
                     </p>
@@ -307,9 +307,7 @@ export function SettingsPage() {
                     />
                   </FormField>
                   {webhookHeadersError ? (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      {webhookHeadersError}
-                    </p>
+                    <p className="text-xs text-warning-accent">{webhookHeadersError}</p>
                   ) : null}
                 </div>
                 <div className="mt-auto flex justify-end">
@@ -448,9 +446,7 @@ export function SettingsPage() {
                   <p
                     className={cn(
                       "mt-2 inline-flex items-center gap-1 text-xs font-medium",
-                      settings.llm_configured
-                        ? "text-emerald-700 dark:text-emerald-300"
-                        : "text-amber-700 dark:text-amber-300"
+                      settings.llm_configured ? "text-success-accent" : "text-warning-accent"
                     )}
                   >
                     {settings.llm_configured
@@ -502,9 +498,7 @@ export function SettingsPage() {
                   />
                 </FormField>
                 {extraParamsError ? (
-                  <p className="md:col-span-2 text-xs text-amber-700 dark:text-amber-300">
-                    {extraParamsError}
-                  </p>
+                  <p className="md:col-span-2 text-xs text-warning-accent">{extraParamsError}</p>
                 ) : null}
               </div>
             </CardContent>

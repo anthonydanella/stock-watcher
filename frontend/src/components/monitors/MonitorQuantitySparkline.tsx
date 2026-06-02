@@ -38,7 +38,7 @@ export function MonitorQuantitySparkline({
       height={height}
       role="img"
       aria-label={`Quantity history: ${values.join(", ")}`}
-      className={cn("text-emerald-600 dark:text-emerald-400", className)}
+      className={cn("text-success-vivid", className)}
       preserveAspectRatio="none"
     >
       {thresholdY != null ? (

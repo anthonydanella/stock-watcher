@@ -10,16 +10,11 @@ export function RuleGroupHeader({ bucket, count }: { bucket: HostBucket; count: 
     <div
       className={cn(
         "flex flex-wrap items-center gap-2 border-b pb-1.5",
-        isMixed ? "border-amber-300/50" : "border-border/60"
+        isMixed ? "border-warning-strong" : "border-border/60"
       )}
     >
       <HostBucketIcon kind={bucket.kind} />
-      <h3
-        className={cn(
-          "font-mono text-sm",
-          isMixed ? "text-amber-700 dark:text-amber-300" : "text-foreground"
-        )}
-      >
+      <h3 className={cn("font-mono text-sm", isMixed ? "text-warning-accent" : "text-foreground")}>
         {bucket.label}
       </h3>
       <span className="text-xs text-muted-foreground">
@@ -29,7 +24,7 @@ export function RuleGroupHeader({ bucket, count }: { bucket: HostBucket; count: 
         <Tooltip>
           <TooltipTrigger
             aria-label="About mixed-host rules"
-            className="ml-1 inline-flex items-center text-amber-700 hover:text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:text-amber-300"
+            className="ml-1 inline-flex items-center link-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
           </TooltipTrigger>
@@ -46,12 +41,7 @@ export function RuleGroupHeader({ bucket, count }: { bucket: HostBucket; count: 
 
 function HostBucketIcon({ kind }: { kind: HostBucket["kind"] }) {
   if (kind === "mixed") {
-    return (
-      <AlertTriangle
-        className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400"
-        aria-hidden="true"
-      />
-    );
+    return <AlertTriangle className="h-3.5 w-3.5 text-warning-vivid" aria-hidden="true" />;
   }
   if (kind === "all") {
     return <Layers className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />;

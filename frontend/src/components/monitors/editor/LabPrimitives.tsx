@@ -13,9 +13,8 @@ export function LabMetric({
     <div
       className={cn(
         "min-w-0 rounded-md border bg-background p-3",
-        tone === "success" &&
-          "border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/40",
-        tone === "error" && "border-red-200 bg-red-50 dark:border-red-900/40 dark:bg-red-950/40"
+        tone === "success" && "border-success-subtle bg-success-subtle",
+        tone === "error" && "border-danger-subtle bg-danger-subtle"
       )}
     >
       <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">{label}</p>

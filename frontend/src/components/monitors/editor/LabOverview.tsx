@@ -25,12 +25,12 @@ export function Overview({ result }: { result: RuleLabResult }) {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <div className="space-y-3">
         {scopeMissed && diagnostics ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40 dark:bg-amber-950/40">
-            <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+          <div className="rounded-md border border-warning-subtle bg-warning-subtle p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-warning">
               <XCircle className="h-4 w-4" />
               <span>Scope matched 0 elements</span>
             </div>
-            <p className="mt-2 break-words text-sm leading-6 text-amber-900 dark:text-amber-100 [overflow-wrap:anywhere]">
+            <p className="mt-2 break-words text-sm leading-6 text-warning [overflow-wrap:anywhere]">
               <span className="font-mono">{diagnostics.selector_or_path}</span> did not match
               anything on this page, so{" "}
               {quantityMode
@@ -45,8 +45,8 @@ export function Overview({ result }: { result: RuleLabResult }) {
             className={cn(
               "rounded-md border p-4",
               hasQuantity
-                ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/40"
-                : "border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/40"
+                ? "border-success-subtle bg-success-subtle"
+                : "border-warning-subtle bg-warning-subtle"
             )}
           >
             <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -61,9 +61,7 @@ export function Overview({ result }: { result: RuleLabResult }) {
               </p>
             ) : null}
             {diagnostics?.quantity_error ? (
-              <p className="mt-2 break-words text-sm text-amber-900 dark:text-amber-200">
-                {diagnostics.quantity_error}
-              </p>
+              <p className="mt-2 break-words text-sm text-warning">{diagnostics.quantity_error}</p>
             ) : null}
           </div>
         ) : (
@@ -71,15 +69,15 @@ export function Overview({ result }: { result: RuleLabResult }) {
             className={cn(
               "rounded-md border p-4",
               result.matched
-                ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/40"
-                : "border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/40"
+                ? "border-success-subtle bg-success-subtle"
+                : "border-warning-subtle bg-warning-subtle"
             )}
           >
             <div className="flex items-center gap-2 text-sm font-semibold">
               {result.matched ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+                <CheckCircle2 className="h-4 w-4 text-success-accent" />
               ) : (
-                <XCircle className="h-4 w-4 text-amber-800" />
+                <XCircle className="h-4 w-4 text-warning-accent" />
               )}
               <span>{result.matched ? "Rule matched" : "Rule did not match"}</span>
             </div>

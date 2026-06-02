@@ -181,7 +181,7 @@ function schedulerHealth(status: SchedulerStatus | null) {
   }
   if (status.last_loop_error) {
     return {
-      icon: <AlertTriangle className="h-4 w-4 text-amber-700" />,
+      icon: <AlertTriangle className="h-4 w-4 text-warning-accent" />,
       label: "Needs attention",
       status: "error",
       detail: "The background loop is alive enough to report state, but the last sweep failed."
@@ -189,14 +189,14 @@ function schedulerHealth(status: SchedulerStatus | null) {
   }
   if (!status.running) {
     return {
-      icon: <AlertTriangle className="h-4 w-4 text-slate-600" />,
+      icon: <AlertTriangle className="h-4 w-4 text-neutral-accent" />,
       label: "Stopped",
       status: "paused",
       detail: "Automatic checks are not currently running."
     };
   }
   return {
-    icon: <CheckCircle2 className="h-4 w-4 text-emerald-700" />,
+    icon: <CheckCircle2 className="h-4 w-4 text-success-accent" />,
     label: "Running",
     status: "in_stock",
     detail: status.due_monitor_count

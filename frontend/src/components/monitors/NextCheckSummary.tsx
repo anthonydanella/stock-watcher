@@ -15,7 +15,7 @@ export function NextCheckSummary({ monitor, cooling }: { monitor: Monitor; cooli
   if (cooling) {
     return (
       <>
-        <span className="block leading-tight text-violet-700 lg:truncate dark:text-violet-300">
+        <span className="block leading-tight text-special-accent lg:truncate">
           Cooling {timeAgo(monitor.cooldown_until)}
         </span>
         <span className="block text-xs leading-tight text-muted-foreground lg:truncate">

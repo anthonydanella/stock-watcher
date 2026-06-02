@@ -110,7 +110,7 @@ export function ScheduleEditPopover({
                 : "Paused"}
             </div>
             {monitor.cooldown_until ? (
-              <div className="mt-0.5 text-[11px] text-violet-700 dark:text-violet-300">
+              <div className="mt-0.5 text-[11px] text-special-accent">
                 Cooling until {formatDate(monitor.cooldown_until)}
               </div>
             ) : null}

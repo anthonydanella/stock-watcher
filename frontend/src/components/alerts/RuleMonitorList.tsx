@@ -52,9 +52,7 @@ export function RuleMonitorList({
             title={monitor.url}
             className={cn(
               "inline-flex max-w-48 items-center gap-1 truncate rounded-full border px-2 py-0.5 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              matching
-                ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200"
-                : "border-border text-muted-foreground"
+              matching ? "surface-success" : "border-border text-muted-foreground"
             )}
           >
             {matching ? <span aria-hidden>✓</span> : null}

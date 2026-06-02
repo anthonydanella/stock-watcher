@@ -96,7 +96,7 @@ export function FleetOverview({
         </div>
       ) : (
         <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2.5 text-sm text-muted-foreground">
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500/80" />
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--success-solid)]/80" />
           All clear — nothing needs attention right now.
         </div>
       )}
