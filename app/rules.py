@@ -130,7 +130,12 @@ def evaluate_rule(
             return RuleResult(matched=False, evidence=_compact(str(exc)))
         text = "\n".join(values)
         return _match(text, match_mode, match_value, evidence=text or "No matching scope text")
-    return _match(content, match_mode, match_value, evidence=_compact(content))
+    # No scope selector: match against the page's visible text, exactly as
+    # ``evaluate_rule_diagnostics`` does. Matching raw HTML here would let the
+    # "Test rule" button match operands hidden in <script>/<style> blocks or tag
+    # markup that the live check (which strips them via _document_text) never sees.
+    text = _document_text(content, content_type)
+    return _match(text, match_mode, match_value, evidence=_compact(text or content))
 
 
 def evaluate_rule_diagnostics(

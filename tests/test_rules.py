@@ -55,6 +55,39 @@ def test_text_rule_scope_excludes_text_outside_selector() -> None:
     assert "In Stock Now" not in result.evidence
 
 
+def test_text_rule_body_ignores_script_and_tag_markup() -> None:
+    # "in stock" appears only inside a <script> blob and a data attribute, never
+    # in the visible text. The live check strips those, so the Test-rule path
+    # (evaluate_rule) must agree and report no match.
+    html = (
+        "<html><head><script>var avail = 'in stock';</script></head>"
+        "<body><div data-availability='in stock'></div>"
+        "<p>Currently sold out</p></body></html>"
+    )
+
+    result = evaluate_rule("text", "", "contains", "in stock", html, "text/html")
+    diagnostics = evaluate_rule_diagnostics(
+        "text", "", "contains", "in stock", html, "text/html"
+    )
+
+    assert result.matched is False
+    assert result.matched == diagnostics.matched
+    assert "in stock" not in result.evidence.lower()
+
+
+def test_text_rule_body_matches_visible_text() -> None:
+    html = "<html><body><script>nope</script><p>In Stock Now</p></body></html>"
+
+    result = evaluate_rule("text", "", "contains", "in stock", html, "text/html")
+    diagnostics = evaluate_rule_diagnostics(
+        "text", "", "contains", "in stock", html, "text/html"
+    )
+
+    assert result.matched is True
+    assert result.matched == diagnostics.matched
+    assert "In Stock Now" in result.evidence
+
+
 def test_invalid_css_selector_reports_evidence() -> None:
     result = evaluate_rule("css", "div[", "exists", "", "<div>In stock</div>")
 
