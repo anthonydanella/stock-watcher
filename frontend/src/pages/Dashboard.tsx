@@ -153,7 +153,12 @@ export function Dashboard() {
             )}
           </section>
           <section className="space-y-3" aria-labelledby="dashboard-events">
-            <SectionHeader id="dashboard-events" title="Recent activity" />
+            <SectionHeader id="dashboard-events" title="Recent activity">
+              <LinkButton variant="outline" size="sm" to="/events">
+                All events
+                <ChevronRight className="h-3.5 w-3.5" />
+              </LinkButton>
+            </SectionHeader>
             <EventsTable events={events} />
           </section>
         </>
