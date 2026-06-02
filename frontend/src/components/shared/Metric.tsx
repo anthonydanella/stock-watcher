@@ -2,7 +2,7 @@ import type React from "react";
 
 import { cn } from "../../lib/utils";
 
-type Accent = "success" | "warning" | "special";
+type Accent = "success" | "warning" | "special" | "caution";
 
 const ACCENT_CLASSES: Record<Accent, { icon: string; value: string; pill: string }> = {
   success: {
@@ -19,6 +19,11 @@ const ACCENT_CLASSES: Record<Accent, { icon: string; value: string; pill: string
     icon: "text-special-solid",
     value: "text-special-vivid",
     pill: "pill-special"
+  },
+  caution: {
+    icon: "text-caution-solid",
+    value: "text-caution-vivid",
+    pill: "pill-caution"
   }
 };
 

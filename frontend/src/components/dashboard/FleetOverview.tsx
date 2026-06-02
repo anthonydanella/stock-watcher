@@ -9,7 +9,7 @@ import { InfoTooltip } from "../shared/InfoTooltip";
 import { Button } from "../ui/button";
 import { FleetRestingStrip } from "./FleetRestingStrip";
 import { FleetRow } from "./FleetRow";
-import { type LastChangeMap, partitionFleet } from "./helpers";
+import { partitionFleet } from "./helpers";
 
 // A quiet group label that sits under the section header, naming each tier and
 // its count so the urgency split (and the sort) is legible at a glance.
@@ -39,20 +39,15 @@ function TierLabel({
 
 export function FleetOverview({
   monitors,
-  lastChanges,
   onChanged
 }: {
   monitors: Monitor[];
-  lastChanges: LastChangeMap;
   onChanged: () => Promise<void> | void;
 }) {
   const [expandResting, setExpandResting] = React.useState(false);
   const [runningIds, setRunningIds] = React.useState<Set<number>>(() => new Set());
 
-  const { attention, resting } = React.useMemo(
-    () => partitionFleet(monitors, lastChanges),
-    [monitors, lastChanges]
-  );
+  const { attention, resting } = React.useMemo(() => partitionFleet(monitors), [monitors]);
 
   const run = React.useCallback(
     async (monitor: Monitor) => {
@@ -74,13 +69,7 @@ export function FleetOverview({
   );
 
   const renderRow = (monitor: Monitor) => (
-    <FleetRow
-      key={monitor.id}
-      monitor={monitor}
-      change={lastChanges[monitor.id]}
-      running={runningIds.has(monitor.id)}
-      onRun={run}
-    />
+    <FleetRow key={monitor.id} monitor={monitor} running={runningIds.has(monitor.id)} onRun={run} />
   );
 
   return (

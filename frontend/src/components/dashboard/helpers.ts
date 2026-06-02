@@ -1,9 +1,6 @@
 import { statusLabel, timeAgo } from "../../lib/format";
 import { isCoolingDown } from "../../lib/monitor";
-import type { EventRow, Monitor } from "../../types";
-
-/** Map of monitor id → its most recent status-change event (for the "last change" column). */
-export type LastChangeMap = Record<number, EventRow>;
+import type { Monitor } from "../../types";
 
 // Statuses that demand a look right now. `out_of_stock` is the normal waiting
 // state for most monitors, so it rests; `in_stock`/`low_stock` are the payoff,
@@ -31,10 +28,9 @@ function attentionRank(monitor: Monitor): number {
   return isCoolingDown(monitor) ? 4 : 9;
 }
 
-function changedAt(monitor: Monitor, lastChanges: LastChangeMap): number {
-  const event = lastChanges[monitor.id];
-  if (!event) return 0;
-  const time = new Date(event.created_at).getTime();
+function changedAt(monitor: Monitor): number {
+  if (!monitor.last_status_change_at) return 0;
+  const time = new Date(monitor.last_status_change_at).getTime();
   return Number.isNaN(time) ? 0 : time;
 }
 
@@ -47,10 +43,10 @@ function byName(a: Monitor, b: Monitor): number {
  * by most-recent change) and the resting ones (sorted by most-recent change so
  * anything that just settled stays near the top).
  */
-export function partitionFleet(
-  monitors: Monitor[],
-  lastChanges: LastChangeMap
-): { attention: Monitor[]; resting: Monitor[] } {
+export function partitionFleet(monitors: Monitor[]): {
+  attention: Monitor[];
+  resting: Monitor[];
+} {
   const attention: Monitor[] = [];
   const resting: Monitor[] = [];
   for (const monitor of monitors) {
@@ -59,13 +55,13 @@ export function partitionFleet(
   attention.sort((a, b) => {
     const rank = attentionRank(a) - attentionRank(b);
     if (rank !== 0) return rank;
-    const recency = changedAt(b, lastChanges) - changedAt(a, lastChanges);
+    const recency = changedAt(b) - changedAt(a);
     if (recency !== 0) return recency;
     return byName(a, b);
   });
   resting.sort((a, b) => {
     if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
-    const recency = changedAt(b, lastChanges) - changedAt(a, lastChanges);
+    const recency = changedAt(b) - changedAt(a);
     if (recency !== 0) return recency;
     return byName(a, b);
   });

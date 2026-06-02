@@ -67,6 +67,8 @@ def monitor_to_dict(
         "failure_count": monitor.failure_count,
         "challenge_count": monitor.challenge_count,
         "cooldown_until": to_iso(monitor.cooldown_until),
+        "last_status_change_at": to_iso(monitor.last_status_change_at),
+        "last_status_change_from": monitor.last_status_change_from,
         "last_error": monitor.last_error,
         "last_error_type": monitor.last_error_type,
         "last_evidence": monitor.last_evidence,

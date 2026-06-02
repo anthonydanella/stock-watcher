@@ -91,6 +91,10 @@ class Monitor:
     failure_count: int = 0
     challenge_count: int = 0
     cooldown_until: datetime | None = None
+    # Stamped whenever a check moves the monitor to a different status, so the UI
+    # can show "<from> → <status> · <when>" without scraping the events feed.
+    last_status_change_at: datetime | None = None
+    last_status_change_from: str = ""
     last_error: str = ""
     last_error_type: str = ""
     last_evidence: str = ""

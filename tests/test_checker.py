@@ -17,6 +17,7 @@ from app.models import (
     STATUS_ERROR,
     STATUS_IN_STOCK,
     STATUS_OUT_OF_STOCK,
+    STATUS_UNKNOWN,
     AppSettings,
 )
 from app.screenshots import screenshot_path
@@ -51,6 +52,48 @@ async def test_check_monitor_records_in_stock_transition(tmp_path: Path) -> None
     updated = require_monitor(repository, monitor_id)
     assert updated.status == STATUS_IN_STOCK
     assert ntfy.messages[0][0] == "Stock watcher active"
+
+
+@pytest.mark.asyncio
+async def test_check_monitor_stamps_last_status_change(tmp_path: Path) -> None:
+    repository = repo(tmp_path)
+    monitor_id = repository.create_monitor(make_monitor())
+    ntfy = FakeNtfy()
+    in_stock = FakeChecker(
+        repository,
+        settings(tmp_path),
+        ntfy,
+        FetchResult(200, "<div class='stock'>Available today</div>", "text/html", {}),
+    )
+
+    # First check transitions unknown -> in_stock and stamps the monitor.
+    await in_stock.check_monitor(require_monitor(repository, monitor_id))
+    first = require_monitor(repository, monitor_id)
+    assert first.status == STATUS_IN_STOCK
+    assert first.last_status_change_from == STATUS_UNKNOWN
+    assert first.last_status_change_at is not None
+    stamped_at = first.last_status_change_at
+
+    # A steady-state check (same status) must NOT move the stamp.
+    await in_stock.check_monitor(first)
+    steady = require_monitor(repository, monitor_id)
+    assert steady.status == STATUS_IN_STOCK
+    assert steady.last_status_change_at == stamped_at
+    assert steady.last_status_change_from == STATUS_UNKNOWN
+
+    # A real transition re-stamps with the previous status as the "from".
+    out_of_stock = FakeChecker(
+        repository,
+        settings(tmp_path),
+        ntfy,
+        FetchResult(200, "<div class='stock'>Sold out</div>", "text/html", {}),
+    )
+    await out_of_stock.check_monitor(steady)
+    changed = require_monitor(repository, monitor_id)
+    assert changed.status == STATUS_OUT_OF_STOCK
+    assert changed.last_status_change_from == STATUS_IN_STOCK
+    assert changed.last_status_change_at is not None
+    assert changed.last_status_change_at >= stamped_at
 
 
 @pytest.mark.asyncio

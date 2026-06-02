@@ -25,9 +25,10 @@ export function SchedulerObservabilityPanel({ status }: { status: SchedulerStatu
       <CardContent className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
+            {/* No heading text here: the "Scheduler status" section header above
+                already titles this panel. We lead with the health icon + badge. */}
             <div className="flex flex-wrap items-center gap-2">
               {health.icon}
-              <h2 className="text-base font-semibold leading-6">Scheduler observability</h2>
               <Badge className={statusBadgeClass(health.status)}>{health.label}</Badge>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">{health.detail}</p>
@@ -58,7 +59,7 @@ export function SchedulerObservabilityPanel({ status }: { status: SchedulerStatu
             icon={<Hourglass className="h-4 w-4" />}
             label="Due now"
             value={status ? status.due_monitor_count.toLocaleString() : "-"}
-            detail={status ? queueDetail(status) : "Loading queue"}
+            detail={status ? "Past their scheduled check time" : "Loading queue"}
           />
           <SchedulerStat
             icon={<CalendarClock className="h-4 w-4" />}
@@ -212,17 +213,6 @@ function browserHealth(status: SchedulerStatus | null) {
     return { label: "Available", status: "in_stock", detail: status.browser_checks.reason };
   }
   return { label: "Unavailable", status: "error", detail: status.browser_checks.reason };
-}
-
-function queueDetail(status: SchedulerStatus) {
-  const parts = [
-    `${status.monitor_counts.enabled.toLocaleString()} enabled`,
-    `${status.monitor_counts.paused.toLocaleString()} paused`
-  ];
-  if (status.monitor_counts.cooling_down) {
-    parts.push(`${status.monitor_counts.cooling_down.toLocaleString()} cooling down`);
-  }
-  return parts.join(" / ");
 }
 
 function formatNextDue(status: SchedulerStatus) {

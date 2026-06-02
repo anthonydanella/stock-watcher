@@ -23,6 +23,8 @@ export type Monitor = {
   failure_count: number;
   challenge_count: number;
   cooldown_until: string | null;
+  last_status_change_at: string | null;
+  last_status_change_from: string;
   last_error: string;
   last_error_type: string;
   last_evidence: string;

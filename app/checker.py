@@ -232,6 +232,9 @@ class StockChecker:
             "last_error_type": error_type,
             "last_evidence": evidence,
         }
+        if old_status != status:
+            fields["last_status_change_at"] = now.isoformat()
+            fields["last_status_change_from"] = old_status
         if quantity is not None:
             fields["last_quantity"] = quantity
             fields["last_quantity_at"] = now.isoformat()

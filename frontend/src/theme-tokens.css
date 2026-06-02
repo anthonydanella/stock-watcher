@@ -675,6 +675,10 @@
     background-color: var(--special-tint);
     box-shadow: inset 0 0 0 1px var(--special-ring);
   }
+  .pill-caution {
+    background-color: var(--caution-tint);
+    box-shadow: inset 0 0 0 1px var(--caution-ring);
+  }
 
   /* trend data-viz */
   .trend-bar-success {

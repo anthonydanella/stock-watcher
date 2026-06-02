@@ -40,6 +40,8 @@ MONITOR_UPDATE_COLUMNS = {
     "failure_count",
     "challenge_count",
     "cooldown_until",
+    "last_status_change_at",
+    "last_status_change_from",
     "last_error",
     "last_error_type",
     "last_evidence",
@@ -84,6 +86,12 @@ def monitor_from_row(row: sqlite3.Row) -> Monitor:
         failure_count=row["failure_count"],
         challenge_count=row["challenge_count"],
         cooldown_until=parse_dt(row["cooldown_until"]),
+        last_status_change_at=parse_dt(row["last_status_change_at"])
+        if "last_status_change_at" in keys
+        else None,
+        last_status_change_from=row["last_status_change_from"]
+        if "last_status_change_from" in keys
+        else "",
         last_error=row["last_error"],
         last_error_type=row["last_error_type"],
         last_evidence=row["last_evidence"],

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { formatDate, statusLabel, timeAgo } from "../../lib/format";
 import { cn } from "../../lib/utils";
-import type { EventRow, Monitor } from "../../types";
+import type { Monitor } from "../../types";
 import { MonitorQuantitySparkline } from "../monitors/MonitorQuantitySparkline";
 import { Button } from "../ui/button";
 import { FleetStatusDot } from "./FleetStatusDot";
@@ -11,12 +11,10 @@ import { nextCheckText, shortStatus, stateText, statusTextClass } from "./helper
 
 export function FleetRow({
   monitor,
-  change,
   running,
   onRun
 }: {
   monitor: Monitor;
-  change: EventRow | undefined;
   running: boolean;
   onRun: (monitor: Monitor) => void;
 }) {
@@ -42,7 +40,7 @@ export function FleetRow({
             {stateText(monitor)}
           </span>
           {/* On narrow screens the last change rides under the name instead of its own column. */}
-          <FleetLastChange change={change} className="shrink-0 sm:hidden" />
+          <FleetLastChange monitor={monitor} className="shrink-0 sm:hidden" />
         </div>
       </div>
 
@@ -56,7 +54,7 @@ export function FleetRow({
         />
       ) : null}
 
-      <FleetLastChange change={change} className="hidden w-36 shrink-0 justify-end sm:flex" />
+      <FleetLastChange monitor={monitor} className="hidden w-36 shrink-0 justify-end sm:flex" />
 
       <span className="hidden w-28 shrink-0 text-right text-xs text-muted-foreground lg:block">
         {nextCheckText(monitor)}
@@ -82,34 +80,31 @@ export function FleetRow({
   );
 }
 
-function FleetLastChange({
-  change,
-  className
-}: {
-  change: EventRow | undefined;
-  className?: string;
-}) {
-  if (!change?.new_status) {
+// The monitor carries its own last-status-change stamp (set by the checker), so
+// this no longer depends on a status_change event still being present in the
+// recent-events feed — and it now reflects transitions into error/challenge too.
+function FleetLastChange({ monitor, className }: { monitor: Monitor; className?: string }) {
+  const at = monitor.last_status_change_at;
+  if (!at) {
     return <span className={cn("text-xs text-muted-foreground/50", className)}>—</span>;
   }
-  const when = timeAgo(change.created_at);
+  const from = monitor.last_status_change_from;
+  const when = timeAgo(at);
   return (
     <span
       className={cn(
         "flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground",
         className
       )}
-      title={`${statusLabel(change.old_status)} → ${statusLabel(change.new_status)} · ${formatDate(change.created_at)}`}
+      title={`${statusLabel(from)} → ${statusLabel(monitor.status)} · ${formatDate(at)}`}
     >
-      {change.old_status ? (
+      {from ? (
         <>
-          <span>{shortStatus(change.old_status)}</span>
+          <span>{shortStatus(from)}</span>
           <ArrowRight className="h-3 w-3 opacity-50" aria-hidden="true" />
         </>
       ) : null}
-      <span className={statusTextClass(change.new_status, true)}>
-        {shortStatus(change.new_status)}
-      </span>
+      <span className={statusTextClass(monitor.status, true)}>{shortStatus(monitor.status)}</span>
       {when ? <span className="text-muted-foreground/70">· {when}</span> : null}
     </span>
   );

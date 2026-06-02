@@ -124,6 +124,8 @@ def init_db(conn: sqlite3.Connection) -> None:
             "low_stock_threshold": "INTEGER",
             "last_quantity": "INTEGER",
             "last_quantity_at": "TEXT",
+            "last_status_change_at": "TEXT",
+            "last_status_change_from": "TEXT NOT NULL DEFAULT ''",
             "notifications_enabled": "INTEGER NOT NULL DEFAULT 1",
             "notify_on_stock_change": "INTEGER NOT NULL DEFAULT 1",
             "notify_on_error": "INTEGER NOT NULL DEFAULT 1",

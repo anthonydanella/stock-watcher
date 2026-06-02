@@ -20,19 +20,6 @@ function summarizeNotificationFailures(events: EventRow[]): NotificationFailureS
   return { count: failures.length, lastAt: failures[0]?.created_at ?? null };
 }
 
-// Build a map of monitor id → its most recent status-change event. Events arrive
-// newest-first, so the first one seen per monitor wins. This powers the fleet
-// list's "last change" column without a dedicated timestamp on the Monitor model.
-function summarizeStatusChanges(events: EventRow[]): Record<number, EventRow> {
-  const latest: Record<number, EventRow> = {};
-  for (const event of events) {
-    if (event.event_type !== "status_change" || event.monitor_id == null) continue;
-    if (latest[event.monitor_id]) continue;
-    latest[event.monitor_id] = event;
-  }
-  return latest;
-}
-
 export function useDashboardData() {
   const queryClient = useQueryClient();
   // refetchInterval polls every 15s while the tab is focused (React Query pauses
@@ -63,19 +50,27 @@ export function useDashboardData() {
     () => summarizeNotificationFailures(allEvents),
     [allEvents]
   );
-  const lastChanges = React.useMemo(() => summarizeStatusChanges(allEvents), [allEvents]);
   const events = React.useMemo(() => allEvents.slice(0, 8), [allEvents]);
 
   const firstError = monitorsQ.error ?? eventsQ.error ?? schedulerQ.error;
   const error = firstError ? errorMessage(firstError, "Could not refresh dashboard") : "";
 
+  // Most recent successful fetch across the three queries, powering the "Updated
+  // <when>" stamp so the otherwise-silent 15s poll has something to show for it.
+  // 0 means "never fetched yet" → null so the UI hides the stamp on cold load.
+  const lastUpdatedAt =
+    Math.max(monitorsQ.dataUpdatedAt, eventsQ.dataUpdatedAt, schedulerQ.dataUpdatedAt) || null;
+
   return {
     monitors,
     events,
     notificationFailures,
-    lastChanges,
     schedulerStatus: schedulerQ.data ?? null,
     busy: manualBusy,
+    // First load with nothing cached yet: lets the page show a skeleton instead
+    // of flashing the "No monitors yet" empty state and 0/0/0/0 metrics.
+    loading: monitorsQ.isPending,
+    lastUpdatedAt,
     error,
     refresh
   };
