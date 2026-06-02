@@ -7,6 +7,7 @@ import "@fontsource-variable/geist";
 
 import { App } from "./App";
 import "./index.css";
+import "./theme-tokens.css";
 import { queryClient } from "./lib/queryClient";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
