@@ -514,7 +514,12 @@ class StockChecker:
             )
             if notify_enabled and monitor.notify_on_challenge:
                 await self.notify(
-                    app_settings, monitor, "Stock watcher challenge", message, tags="warning"
+                    app_settings,
+                    monitor,
+                    "Stock watcher challenge",
+                    message,
+                    tags="warning",
+                    collapse_key=f"monitor-{monitor.id}",
                 )
             return
         if new_status == STATUS_ERROR and failure_count in {3, 6}:
@@ -524,7 +529,12 @@ class StockChecker:
             self.repo.add_event(monitor.id, EVENT_ERROR, message, old_status, new_status, evidence)
             if notify_enabled and monitor.notify_on_error:
                 await self.notify(
-                    app_settings, monitor, "Stock watcher errors", message, tags="warning"
+                    app_settings,
+                    monitor,
+                    "Stock watcher errors",
+                    message,
+                    tags="warning",
+                    collapse_key=f"monitor-{monitor.id}",
                 )
             return
         if old_status != new_status:
@@ -546,7 +556,14 @@ class StockChecker:
                 message = f"{monitor.name}: {old_descriptor} -> {new_descriptor}."
             self.repo.add_event(monitor.id, event_type, message, old_status, new_status, evidence)
             if notify_enabled and monitor.notify_on_stock_change:
-                await self.notify(app_settings, monitor, title, message, tags="shopping_cart")
+                await self.notify(
+                    app_settings,
+                    monitor,
+                    title,
+                    message,
+                    tags="shopping_cart",
+                    collapse_key=f"monitor-{monitor.id}",
+                )
 
     async def notify(
         self,
@@ -555,12 +572,17 @@ class StockChecker:
         title: str,
         message: str,
         tags: str = "package",
+        collapse_key: str | None = None,
     ) -> bool:
         """Fan a notification out to every enabled channel.
 
         Returns True if at least one channel delivered. Each channel is isolated:
         a failure (raised or rejected) is recorded as an event and never blocks
         the others or the surrounding check.
+
+        `tags` is the ntfy emoji label; `collapse_key` is the Web Push
+        notification tag (its client-side replace key). They are kept separate so
+        ntfy keeps its emoji while Web Push can collapse per source.
         """
         monitor_id = monitor.id if monitor else None
         delivered = False
@@ -582,7 +604,9 @@ class StockChecker:
                 )
 
         try:
-            if await self.webpush.send(app_settings, monitor, title, message, tags=tags):
+            if await self.webpush.send(
+                app_settings, monitor, title, message, tags=tags, collapse_key=collapse_key
+            ):
                 delivered = True
         except Exception as exc:  # noqa: BLE001 - isolate channel failures
             self.repo.add_event(

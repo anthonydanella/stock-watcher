@@ -87,6 +87,7 @@ class WebPushManager:
         title: str,
         message: str,
         tags: str = "package",
+        collapse_key: str | None = None,
     ) -> bool:
         if not app_settings.webpush_enabled:
             return False
@@ -102,7 +103,11 @@ class WebPushManager:
                 "title": title,
                 "body": message,
                 "url": monitor.url if monitor else "/",
-                "tag": tags,
+                # The notification `tag` is the client-side collapse key: same-tag
+                # notifications replace each other in place. Use a per-source key
+                # (per monitor / per alert rule) so distinct sources don't clobber
+                # one another; fall back to the emoji `tags` only when unset.
+                "tag": collapse_key or tags,
             }
         )
         outcomes = await asyncio.gather(

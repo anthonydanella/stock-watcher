@@ -76,6 +76,26 @@ async def test_send_delivers_to_subscriptions(
 
 
 @pytest.mark.asyncio
+async def test_collapse_key_overrides_tag_in_payload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = make_repo(tmp_path)
+    repo.add_push_subscription("https://push.example.com/1", "key-1", "auth-1")
+    manager = WebPushManager(repo, make_settings(tmp_path))
+
+    calls: list[dict] = []
+    monkeypatch.setattr("pywebpush.webpush", lambda **kwargs: calls.append(kwargs))
+
+    assert (
+        await manager.send(
+            _app_settings(), None, "Title", "Body", "bell", collapse_key="alert-rule-7"
+        )
+        is True
+    )
+    assert json.loads(calls[0]["data"])["tag"] == "alert-rule-7"
+
+
+@pytest.mark.asyncio
 async def test_send_prunes_gone_subscription(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

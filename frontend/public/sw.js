@@ -71,9 +71,14 @@ self.addEventListener("push", (event) => {
     }
   }
   const title = payload.title || "Stock Watcher";
+  const tag = payload.tag || undefined;
   const options = {
     body: payload.body || "",
-    tag: payload.tag || undefined,
+    tag,
+    // A same-tag notification replaces the previous one in place; without
+    // renotify the replacement is silent (no banner/sound). Re-alert so a fresh
+    // update for the same monitor/rule still surfaces. renotify requires a tag.
+    renotify: Boolean(tag),
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
     data: { url: payload.url || "/" }

@@ -21,7 +21,9 @@ from app.models import (
 )
 from app.repository import Repository
 
-NotifyFn = Callable[[AppSettings, Monitor | None, str, str, str], Awaitable[bool]]
+# (app_settings, monitor, title, message, tags, *, collapse_key) -> delivered.
+# `collapse_key` is keyword-only on the concrete impl, so the alias stays loose.
+NotifyFn = Callable[..., Awaitable[bool]]
 
 
 @dataclass(frozen=True)
@@ -122,7 +124,12 @@ async def evaluate_rules(
                 # `notify` fans out to every enabled channel and records its own
                 # per-channel delivery failures, so the loop only needs to guard
                 # against an unexpected raise.
-                await notify(app_settings, None, title, message, "bell")
+                # Per-rule collapse key so each rule's Web Push notifications
+                # replace only their own prior alert, instead of every custom
+                # alert collapsing under a single shared tag.
+                await notify(
+                    app_settings, None, title, message, "bell", collapse_key=f"alert-rule-{rule.id}"
+                )
             except Exception as exc:  # noqa: BLE001 - keep evaluation loop alive
                 repo.add_event(
                     None,

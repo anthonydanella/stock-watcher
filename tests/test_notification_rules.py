@@ -19,9 +19,13 @@ from app.notification_rules import evaluate_rule, evaluate_rules
 class FakeNtfy:
     def __init__(self) -> None:
         self.messages: list[tuple[str, str, str]] = []
+        self.collapse_keys: list[str | None] = []
 
-    async def send(self, settings, monitor, title, message, tags="package") -> bool:  # noqa: ANN001
+    async def send(  # noqa: ANN001
+        self, settings, monitor, title, message, tags="package", collapse_key=None
+    ) -> bool:
         self.messages.append((title, message, tags))
+        self.collapse_keys.append(collapse_key)
         return True
 
 
@@ -244,6 +248,9 @@ async def test_evaluate_rules_fires_on_transition(monkeypatch, tmp_path) -> None
     assert "Two in stock" in title
     assert "in stock" in message
     assert tags == "bell"
+    # Each rule gets its own Web Push collapse key so distinct alerts don't
+    # replace one another under a single shared tag.
+    assert ntfy.collapse_keys[0] == f"alert-rule-{rule_id}"
 
     # Second call with same state should not fire again.
     await evaluate_rules(repo, app_settings, ntfy.send)
