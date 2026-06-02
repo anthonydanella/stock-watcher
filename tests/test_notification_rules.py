@@ -290,7 +290,20 @@ async def test_evaluate_rules_cooldown_blocks_refire(monkeypatch, tmp_path) -> N
     assert ntfy.messages == []
     stored = repo.get_notification_rule(rule_id)
     assert stored is not None
-    assert stored.last_satisfied is True  # state still tracked
+    # The rise stays pending (unacknowledged) so it can fire once cooldown ends,
+    # rather than being silently dropped.
+    assert stored.last_satisfied is False
+
+    # Once the cooldown window elapses, the deferred alert fires (still in stock).
+    repo.update_notification_rule_state(
+        rule_id, last_satisfied=False, last_triggered_at=utcnow() - timedelta(minutes=61)
+    )
+    await evaluate_rules(repo, app_settings, ntfy.send)
+
+    assert len(ntfy.messages) == 1
+    stored = repo.get_notification_rule(rule_id)
+    assert stored is not None
+    assert stored.last_satisfied is True
 
 
 @pytest.mark.asyncio

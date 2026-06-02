@@ -82,8 +82,15 @@ async def evaluate_rules(
 ) -> None:
     """Evaluate every enabled rule against the current monitor states.
 
-    Persists `last_satisfied`/`last_triggered_at` and fires ntfy on
-    false→true transitions, respecting cooldown_minutes.
+    Fires on the false→true transition of the condition, respecting
+    cooldown_minutes. A cooldown *defers* an alert rather than dropping it: a
+    rise that lands inside the cooldown window stays pending (``last_satisfied``
+    is not set until the alert actually goes out) and fires on the first tick
+    after the window elapses, as long as the condition is still satisfied.
+
+    ``last_satisfied`` therefore tracks "we have notified for the current
+    satisfied episode", not raw satisfaction — the live, display-only state is
+    computed separately in the serializer.
     """
     rules = repo.list_notification_rules()
     if not rules:
@@ -123,11 +130,20 @@ async def evaluate_rules(
                     f"Alert rule '{rule.name}' notification failed: {exc}",
                 )
 
-        if evaluation.satisfied != previously_satisfied or (
-            should_fire and triggered_at != rule.last_triggered_at
-        ):
+        # Only acknowledge a satisfied episode once we have actually fired for it.
+        # A rise still waiting out its cooldown stays unacknowledged so the next
+        # tick re-detects the transition and fires when the window has elapsed —
+        # the cooldown defers the alert instead of swallowing it.
+        if not evaluation.satisfied:
+            new_satisfied = False
+        elif should_fire:
+            new_satisfied = True
+        else:
+            new_satisfied = previously_satisfied
+
+        if new_satisfied != previously_satisfied or triggered_at != rule.last_triggered_at:
             repo.update_notification_rule_state(
                 rule.id,
-                last_satisfied=evaluation.satisfied,
+                last_satisfied=new_satisfied,
                 last_triggered_at=triggered_at,
             )
