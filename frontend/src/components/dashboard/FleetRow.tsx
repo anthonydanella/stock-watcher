@@ -1,7 +1,7 @@
 import { ArrowRight, LoaderCircle, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { formatDate, statusLabel, timeAgo } from "../../lib/format";
+import { formatDate, statusLabel, timeAgoShort } from "../../lib/format";
 import { cn } from "../../lib/utils";
 import type { Monitor } from "../../types";
 import { MonitorQuantitySparkline } from "../monitors/MonitorQuantitySparkline";
@@ -89,7 +89,7 @@ function FleetLastChange({ monitor, className }: { monitor: Monitor; className?:
     return <span className={cn("text-xs text-muted-foreground/50", className)}>—</span>;
   }
   const from = monitor.last_status_change_from;
-  const when = timeAgo(at);
+  const when = timeAgoShort(at);
   return (
     <span
       className={cn(

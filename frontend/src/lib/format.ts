@@ -66,6 +66,20 @@ export function timeAgo(value: string | null | undefined): string {
   return rtf.format(Math.round(diffSec / 86400), "day");
 }
 
+// Compact past-relative form ("5s", "3m", "2h", "9d") for dense rows where the
+// verbose `timeAgo` phrase would overflow a fixed-width column. The exact moment
+// stays available in a `title` tooltip at the call site.
+export function timeAgoShort(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const abs = Math.round(Math.abs(date.getTime() - Date.now()) / 1000);
+  if (abs < 60) return `${abs}s`;
+  if (abs < 3600) return `${Math.round(abs / 60)}m`;
+  if (abs < 86400) return `${Math.round(abs / 3600)}h`;
+  return `${Math.round(abs / 86400)}d`;
+}
+
 export function formatDuration(ms: number | null | undefined) {
   if (ms == null) return "-";
   if (ms < 1000) return `${ms}ms`;
