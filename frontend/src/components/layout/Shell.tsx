@@ -10,6 +10,7 @@ import { Monitors } from "../../pages/Monitors";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { navLinkClass } from "./navigation";
+import { RefreshStatus } from "./RefreshStatus";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Shell() {
@@ -40,7 +41,7 @@ export function Shell() {
   // overflow-y to auto, which would establish a scroll container and break
   // position: sticky for the nav and page headers.
   return (
-    <div className="min-h-screen overflow-x-clip">
+    <div className="flex min-h-screen flex-col overflow-x-clip">
       {/* Soft ambient wash behind everything — a faint brand-tinted glow up top
           that fades into the page, giving the flat background subtle depth. */}
       <div
@@ -94,7 +95,7 @@ export function Shell() {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-450 px-3 sm:px-4 py-4 sm:py-6 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
+      <main className="mx-auto w-full max-w-450 flex-1 px-3 sm:px-4 py-4 sm:py-6 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -108,6 +109,11 @@ export function Shell() {
           </Routes>
         </ErrorBoundary>
       </main>
+      <footer className="mx-auto w-full max-w-450 px-3 sm:px-4 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-end border-t border-border/60 pt-3">
+          <RefreshStatus />
+        </div>
+      </footer>
     </div>
   );
 }
