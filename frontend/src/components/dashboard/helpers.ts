@@ -15,9 +15,9 @@ export function needsAttention(monitor: Monitor): boolean {
 
 // A monitor that just dropped from in/low stock to out of stock is the "you
 // just missed it" case: not actionable (so it still rests), but worth a glance
-// for a short window. Plain out-of-stock — the steady waiting state — and a
-// first-check unknown→out-of-stock do not qualify.
-const RECENTLY_SOLD_OUT_WINDOW_MS = 60 * 60 * 1000;
+// for a day after it happens. Plain out-of-stock — the steady waiting state —
+// and a first-check unknown→out-of-stock do not qualify.
+const RECENTLY_SOLD_OUT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const LOST_AVAILABILITY_FROM = new Set(["in_stock", "low_stock"]);
 
 export function recentlySoldOut(monitor: Monitor): boolean {
