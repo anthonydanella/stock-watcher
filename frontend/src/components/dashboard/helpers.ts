@@ -73,20 +73,20 @@ export function partitionFleet(
 }
 
 export function statusDotClass(status: string | null | undefined, enabled: boolean): string {
-  if (!enabled) return "bg-zinc-400/70 dark:bg-zinc-500/60";
+  if (!enabled) return "bg-neutral-muted";
   switch (status) {
     case "in_stock":
-      return "bg-emerald-500";
+      return "bg-success-solid";
     case "low_stock":
-      return "bg-yellow-500";
+      return "bg-caution-solid";
     case "out_of_stock":
-      return "bg-slate-400 dark:bg-slate-500";
+      return "bg-neutral-solid";
     case "error":
-      return "bg-amber-500";
+      return "bg-warning-solid";
     case "challenge":
-      return "bg-violet-500";
+      return "bg-special-solid";
     default:
-      return "bg-zinc-400";
+      return "bg-neutral-solid";
   }
 }
 
@@ -96,13 +96,13 @@ export function statusTextClass(status: string | null | undefined, enabled: bool
   if (!enabled) return "text-muted-foreground";
   switch (status) {
     case "in_stock":
-      return "font-medium text-emerald-600 dark:text-emerald-400";
+      return "font-medium text-success-vivid";
     case "low_stock":
-      return "font-medium text-yellow-600 dark:text-yellow-400";
+      return "font-medium text-caution-vivid";
     case "error":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-warning-vivid";
     case "challenge":
-      return "text-violet-600 dark:text-violet-400";
+      return "text-special-vivid";
     default:
       return "text-muted-foreground";
   }

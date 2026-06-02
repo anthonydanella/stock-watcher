@@ -106,22 +106,22 @@ export function errorMessage(error: unknown, fallback: string) {
 
 export function statusBadgeClass(status: string | null | undefined) {
   if (status === "in_stock" || status === "active" || status === "ok" || status === "healthy") {
-    return "rounded-full border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200";
+    return "rounded-full surface-success";
   }
   if (status === "low_stock") {
-    return "rounded-full border-yellow-200 bg-yellow-50 text-yellow-900 dark:border-yellow-900/40 dark:bg-yellow-950/40 dark:text-yellow-200";
+    return "rounded-full surface-caution";
   }
   if (status === "out_of_stock") {
-    return "rounded-full border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-700/50 dark:bg-slate-800/50 dark:text-slate-200";
+    return "rounded-full surface-neutral";
   }
   if (status === "error" || status === "degraded") {
-    return "rounded-full border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200";
+    return "rounded-full surface-warning";
   }
   if (status === "challenge") {
-    return "rounded-full border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200";
+    return "rounded-full surface-special";
   }
   if (status === "paused" || status === "idle" || status === "unknown") {
-    return "rounded-full border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700/50 dark:bg-zinc-800/50 dark:text-zinc-300";
+    return "rounded-full surface-neutral";
   }
   return "rounded-full";
 }
@@ -130,27 +130,25 @@ export function eventBadgeClass(eventType: string | null | undefined) {
   switch (eventType) {
     case "recovery":
     case "alert_triggered":
-      return "rounded-full border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200";
+      return "rounded-full surface-success";
     case "challenge":
-      return "rounded-full border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200";
+      return "rounded-full surface-special";
     case "error":
     case "screenshot_error":
-      return "rounded-full border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200";
+      return "rounded-full surface-warning";
     case "notification_error":
-      return "rounded-full border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200";
+      return "rounded-full surface-danger";
     case "status_change":
-      return "rounded-full border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/40 dark:text-sky-200";
+      return "rounded-full surface-info";
     default:
       // manual + anything unrecognized: quiet, neutral pill so routine entries
       // recede and the colored ones above stand out when scanning.
-      return "rounded-full border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-zinc-700/50 dark:bg-zinc-800/50 dark:text-zinc-300";
+      return "rounded-full surface-neutral";
   }
 }
 
-export const warningAlertClass =
-  "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200";
-export const successAlertClass =
-  "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200";
+export const warningAlertClass = "surface-warning";
+export const successAlertClass = "surface-success";
 
 function isFuture(value: string | null | undefined) {
   if (!value) return false;

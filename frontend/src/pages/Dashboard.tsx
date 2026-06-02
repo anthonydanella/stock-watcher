@@ -92,19 +92,19 @@ export function Dashboard() {
           title="In stock"
           value={counts.inStock}
           icon={<Bell className="h-3.5 w-3.5" />}
-          accent={counts.inStock > 0 ? "emerald" : undefined}
+          accent={counts.inStock > 0 ? "success" : undefined}
         />
         <Metric
           title="Challenges"
           value={counts.challenge}
           icon={<ShieldAlert className="h-3.5 w-3.5" />}
-          accent={counts.challenge > 0 ? "violet" : undefined}
+          accent={counts.challenge > 0 ? "special" : undefined}
         />
         <Metric
           title="Errors"
           value={counts.errors}
           icon={<Clock className="h-3.5 w-3.5" />}
-          accent={counts.errors > 0 ? "amber" : undefined}
+          accent={counts.errors > 0 ? "warning" : undefined}
         />
       </div>
       <section className="space-y-3" aria-labelledby="dashboard-monitors">

@@ -2,23 +2,23 @@ import type React from "react";
 
 import { cn } from "../../lib/utils";
 
-type Accent = "emerald" | "amber" | "violet";
+type Accent = "success" | "warning" | "special";
 
 const ACCENT_CLASSES: Record<Accent, { icon: string; value: string; pill: string }> = {
-  emerald: {
-    icon: "text-emerald-500",
-    value: "text-emerald-600 dark:text-emerald-400",
-    pill: "bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/20"
+  success: {
+    icon: "text-success-solid",
+    value: "text-success-vivid",
+    pill: "pill-success"
   },
-  amber: {
-    icon: "text-amber-500",
-    value: "text-amber-600 dark:text-amber-400",
-    pill: "bg-amber-500/10 ring-1 ring-inset ring-amber-500/20"
+  warning: {
+    icon: "text-warning-solid",
+    value: "text-warning-vivid",
+    pill: "pill-warning"
   },
-  violet: {
-    icon: "text-violet-500",
-    value: "text-violet-600 dark:text-violet-400",
-    pill: "bg-violet-500/10 ring-1 ring-inset ring-violet-500/20"
+  special: {
+    icon: "text-special-solid",
+    value: "text-special-vivid",
+    pill: "pill-special"
   }
 };
 
