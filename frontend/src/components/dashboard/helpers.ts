@@ -13,6 +13,22 @@ export function needsAttention(monitor: Monitor): boolean {
   return isCoolingDown(monitor);
 }
 
+// A monitor that just dropped from in/low stock to out of stock is the "you
+// just missed it" case: not actionable (so it still rests), but worth a glance
+// for a short window. Plain out-of-stock — the steady waiting state — and a
+// first-check unknown→out-of-stock do not qualify.
+const RECENTLY_SOLD_OUT_WINDOW_MS = 60 * 60 * 1000;
+const LOST_AVAILABILITY_FROM = new Set(["in_stock", "low_stock"]);
+
+export function recentlySoldOut(monitor: Monitor): boolean {
+  if (monitor.status !== "out_of_stock") return false;
+  if (!LOST_AVAILABILITY_FROM.has(monitor.last_status_change_from)) return false;
+  if (!monitor.last_status_change_at) return false;
+  const changed = new Date(monitor.last_status_change_at).getTime();
+  if (Number.isNaN(changed)) return false;
+  return Date.now() - changed <= RECENTLY_SOLD_OUT_WINDOW_MS;
+}
+
 // Lower rank floats to the top of the attention tier: opportunities first, then
 // problems, then anything that's merely cooling down.
 const STATUS_RANK: Record<string, number> = {
